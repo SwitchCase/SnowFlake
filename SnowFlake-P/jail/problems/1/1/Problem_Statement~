@@ -1,0 +1,36 @@
+Building A City:
+
+A new city is to be constructed with n buildings. Each building is assigned to a builder. The builder responsible for ith building, constructs it at a rate of one floor per D[i] days.
+
+Construction work stops on the day when the total number of floors in all buildings sum up to m.
+
+Now given n, m and D[1..n], You need to accurately estimate the no. of days required for construction.
+
+
+Input:
+
+There are several test cases(<50). Each test case consists of two lines.
+First line contains n and m. Second line contains n integers representing the values of D[1 to n].
+Input ends with n and m equal to 0 0.
+
+Output:
+
+For each test case print the no. of days required for completion of n floors in all.
+
+Constraints:
+
+0< n <100000
+0< D[i] <50
+0< m <2^60
+
+
+Sample input:
+
+3 4
+1 3 2
+
+0 0
+
+Sample output:
+
+3

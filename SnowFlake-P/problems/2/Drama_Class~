@@ -1,0 +1,30 @@
+Problem: Drama Class
+
+Agnibha is participating in drama. When he reahes MP hall for auditions he finds that there are n roles and n interested participants including him. All participants are equally talented. So inorder to ensure a "fair" distribution of roles, the participants decide to form a circle and count m persons using the hindi rhyme "akkad bakkad". The mth person in the circle is assigned the role 1. mth person then leaves the circle. The counting restarts again from the person next to the role1 guy who just left. The next mth guy in the circle is chosen for 2nd role and the process continues untill all n roles are assigned.
+
+Now,When the circle is formed for the first time, Agnibha is kth person in the circle. He wants to know what role he gets before the counting begins. 
+
+For example, if m = 3, n = 5 and k = 2. Agnibha is thus the 2nd preson. Initially 1,2,3,4 and 5 are in circle. After first counting, role 1 is assigned to person 3 and 1, 2, 4, and 5 remain in the circle. Counting starts again. Role 2 is assigned to person 1. Persons 2, 4 and 5 remain in the circle. Role 3 is assigned to 5. Persons 2 and 4 remain in the circle. Finally Agnibha, who is person 2 gets role 4.
+
+Now, given n,m and k, you need to evaluate the role assigned to Agnibha.
+
+Input:
+
+First line contains number of test cases t ( t<150 )
+Each test case contains one and the only line of input containing n, m and k.
+
+Output:
+
+Role assigned to Agnibha.
+
+Constraints:
+0< n , m < 500000
+0< k < n
+
+
+Sample Input:
+1
+5 3 2
+
+Sample output:
+5

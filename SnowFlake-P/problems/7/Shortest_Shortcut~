@@ -1,0 +1,44 @@
+Problem: Shortest Shortcut
+
+DeepNarayan has a strange way of walking to college from hostel. He always follows a path which consists of straight line segments of length 20m. The line segments are oriented in either north-south (N-S), S-N , east-west(E-W) or W-E directions. He loves his path so much that he always walks to college in the same path.
+
+During insomnia, he was late and had to hurry up. Since he loves his path very much, DeepNarayan decides to take only one shortcut. He wants his shortcut to be a straight line segment, oriented in onr of the N-S,S-N,E-W or W-E directions. He also wants the shortcut to be as short as possible.
+
+Help DeepNarayan find his shortcut.
+
+
+		   _ _ _
+	._ _ _|		|
+		   _ _ _|
+		  |
+		  |
+		  |_.   
+
+	
+Input:
+
+First line contains n, the number of 20m segments in the path. Second line contains a series of characters 'N', 'S', 'E' and 'W' without any spaces. 'N', 'S', 'E' and 'W' means that DeepNarayan path continues 20m towards north, south, east and west respectively.
+
+Output:
+
+Print only one line of output containing L, B, E and D, where 
+L: Length of the shortest shortcut.
+B: Index of the breakpoint where the shortcut begins
+E: Index of the breakpoint where the shortcut ends
+D: Direction of the shortcut
+
+Shortcut always exists. If more than one shortcut exists then output the shortcut which comes earliest in the path. If two or more shortcuts of minimum length start at the same breakpoint, output the shortcut that ends furthest in the path.
+
+
+Time Limit:
+3s
+
+
+Sample input:
+16
+ENNNWWWNNEEESEEE
+
+
+Sample output:
+1 4 13 N
+

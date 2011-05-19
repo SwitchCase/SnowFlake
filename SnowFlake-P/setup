@@ -1,0 +1,62 @@
+#!/bin/bash
+
+#
+# EDIT THE FOLLOWING VARIABLES
+#
+
+# Your database username
+DBUSER=
+
+# Your database password
+DBPASS=
+
+# Database name
+DBNAME=onj
+
+# Contest start time (by default set to 1 minute after you run setup)
+STARTTIME=`date -d '1 hour 10 minutes' +"%F %H:%M:%S"`
+
+# Contest end time (by default set to 1 hour after you run setup)
+ENDTIME=`date -d '2 hours' +"%F %H:%M:%S"`
+
+#
+# DO NOT EDIT BELOW THIS UNLESS YOU REALLY KNOW WHAT YOU ARE DOING
+#
+
+# This sets correct permissions
+chmod 777 code*
+chmod 666 problems*/*/statement
+chmod 755 onj
+
+# This replaces constants in settings.php and dbinit.sql
+sed -i "s/dbuser/$DBUSER/g" settings.php
+sed -i "s/dbpass/$DBPASS/g" settings.php
+sed -i "s/dbname/$DBNAME/g" settings.php dbinit.sql
+sed -i "s/STARTTIME/$STARTTIME/g" settings.php
+sed -i "s/ENDTIME/$ENDTIME/g" settings.php
+
+# This initializes the database
+if [ $DBPASS ]; then
+	echo "drop database $DBNAME" | mysql -u"$DBUSER" -p"$DBPASS" 2> /dev/null
+	mysql -u"$DBUSER" -p"$DBPASS" < dbinit.sql
+else
+	echo "drop database $DBNAME" | mysql -u"$DBUSER" 2> /dev/null
+	mysql -u"$DBUSER" < dbinit.sql
+fi
+
+# This generates random strings for the code and problem directories
+JUNK=$(date | md5sum | md5sum)
+APPEND=${JUNK:0:20}
+
+# Uncomment these when you want to use random strings for code and problem directories
+#CODEDIR=code_$APPEND
+#PROBLEMDIR=problems_$APPEND
+
+CODEDIR=code
+PROBLEMDIR=problems
+
+sed -i "s/codedir/$CODEDIR/g" settings.php
+sed -i "s/problemdir/$PROBLEMDIR/g" settings.php onj
+
+#mv code* $CODEDIR 
+#mv problems* $PROBLEMDIR 

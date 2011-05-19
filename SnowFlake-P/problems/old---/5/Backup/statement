@@ -1,0 +1,59 @@
+Look at the following pseudo-code, which computes the n-th Fibonacci number:<br/><br/>
+
+int fibonacci(int n)<br/>
+{<br/>
+	if (n == 0)<br/>
+	{<br/>
+		print(0)<br/>
+		return 0<br/>
+	}<br/>
+	if (n == 1)<br/>
+	{<br/>
+		print(1)<br/>
+		return 1<br/>
+	}<br/>
+	return fibonacci(n - 1) + fibonacci(n - 2)<br/>
+}<br/><br/>
+
+If one calls fibonacci(3), then the following will happen:<br/>
+    * fibonacci(3) calls fibonacci(2) and fibonacci(1) (the first call).<br/>
+    * fibonacci(2) calls fibonacci(1) (the second call) and fibonacci(0).<br/>
+    * The second call of fibonacci(1) prints 1 and returns 1.<br/>
+    * fibonacci(0) prints 0 and returns 0.<br/>
+    * fibonacci(2) gets the results of fibonacci(1) and fibonacci(0) and returns 1.<br/>
+    * The first call of fibonacci(1) prints 1 and returns 1.<br/>
+    * fibonacci(3) gets the results of fibonacci(2) and fibonacci(1) and returns 2.<br/>
+<br/>
+In total, 1 will be printed twice and 0 will be printed once.<br/><br/>
+
+We want to know how many times 0 and 1 will be printed for a given integer <strong>N</strong>.
+
+<br/><br/>
+
+<strong>INPUT</strong><br/>
+The first line contains an integer <strong>T</strong>, denoting the number of test cases.<br/>
+The next <strong>T</strong> lines contain an integer <strong>N</strong>.
+
+<br/><br/>
+
+<strong>OUTPUT</strong><br/>
+For each test case, print one line of output which contains 2 integers separated by a space. The first integer is the number of times 0 is printed. The second integer is the number of times 1 is printed.
+
+<br/><br/>
+
+<strong>CONSTRAINTS</strong><br/>
+1 &lt;= <strong>T</strong> &lt;= 50<br/>
+0 &lt;= <strong>N</strong> &lt;= 40
+
+<br/><br/>
+
+<strong>SAMPLE INPUT</strong><br/>
+2<br/>
+0<br/>
+3
+
+<br/><br/>
+
+<strong>SMAPLEOUTPUT</strong><br/>
+1 0<br/>
+1 2

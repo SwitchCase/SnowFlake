@@ -1,0 +1,27 @@
+===
+ONJ
+===
+
+INSTALLATION INSTRUCTIONS
+==================================================
+1. Place these files in a directory under your web root
+2. Edit setup and set the variables to appropriate values
+3. Run ./setup
+
+WARNING
+==================================================
+1. Do NOT run setup after the initial installation. It resets the database.
+
+HOW TO UPDATE PROBLEMS
+==================================================
+1. Problems are stored under the problems/ directory
+2. In this directory, you will find subfolders 1/ 2/ 3/ 4/ 5/, each holding data for the corresponding problem
+3. Under each of these, you will find 3 files:
+	- statement : This contains the html of the problem statement
+	- in : This is the system test input file
+	- out : This is the expected output that the program should produce
+4. You can also edit problems from the problem page if you are logged in as admin
+
+HOW TO CHANGE SETTINGS AFTER INITIAL SETUP
+==================================================
+1. Play around with settings.php

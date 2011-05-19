@@ -1,0 +1,265 @@
+/*
+* @copyright (c) 2008 Nicolo John Davis and Sarang Bharadwaj
+* @license http://opensource.org/licenses/gpl-license.php GNU Public License
+*/
+
+#include <iostream>
+#include<cstdio>
+#include <vector>
+#include <regex.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <cstdlib>
+#include <sys/wait.h>
+#include <signal.h>
+#include <fstream>
+#include <string>
+#define RIGHT 0
+#define WRONG 2
+#define TIME_EXCEEDED 3
+#define COMPILE_ERROR 1
+#define ILLEGAL_FILE 4
+
+#define RUN_TIME_ERROR 5
+#define PRESENTATION_ERROR 6
+
+#define TIME_LIMIT 5
+using namespace std;
+int exit_status,pid;
+char comm[100];
+#ifdef DEBUG
+	string err[]={"right","compile err","wrong","time excd","illegal file"};
+#endif
+
+void time_out(int i)
+{
+	sprintf(comm,"kill -s 9 %d",pid);
+	system(comm);
+	#ifdef DEBUG
+		cerr<<err[TIME_EXCEEDED]<<endl;
+	#endif
+
+	exit(TIME_EXCEEDED);
+}
+
+string getpath(string s)
+{
+	int i = s.find_last_of('/');
+	if(i != string::npos)
+		return s.substr(0, i);
+	return "";
+}
+
+string getext(string s)
+{
+	int i = s.find_last_of('.');
+	if(i != string::npos)
+		return s.substr(i+1);
+	return "";
+}
+
+bool match(const char *pattern, const char *filename);
+bool checkForSystemCalls(const char *filename);
+
+int main(int argc,char *argv[])
+{
+	string ext = getext(argv[1]);
+	string path = getpath(argv[1]);
+	int time_limit = atoi(argv[3]);
+	if(ext=="" || path=="" || (ext!="cpp" && ext!="c" && ext!="CPP" && ext!="C"))
+	{
+		#ifdef DEBUG
+			cerr<<err[ILLEGAL_FILE]<<endl;
+		#endif
+
+		return ILLEGAL_FILE;
+	}
+
+	if(checkForSystemCalls(argv[1]))
+		return COMPILE_ERROR;
+
+	string flag=" ";
+	if(ext.size() == 1)
+		flag = " -xc ";
+
+	string cmd = "g++ -lm "+flag+string(argv[1])+"  -o"+path+"/a.out 2>"+path+"/opc";
+	//string sed="sed -i 's#"+ "code" + "##g' " + path+"/opc";
+	//system(sed.c_str());	
+	#ifdef DEBUG
+		cerr<<cmd<<" "<<path<<" "<<ext<<endl;
+	#endif
+
+	int i = system(cmd.c_str());
+	if(i)
+	{
+		#ifdef DEBUG
+			cerr<<err[COMPILE_ERROR]<<endl;
+		#endif
+		return COMPILE_ERROR;
+	}
+
+	pid=fork();
+	if(pid)
+	{       
+		int status;
+		
+		signal(SIGALRM,time_out);
+		alarm(time_limit);
+		waitpid(pid,&status,0);
+		alarm(0);
+		
+		if(WIFSIGNALED(status))
+			return RUN_TIME_ERROR;
+			
+		string file1 = path+"/op";
+		string file2 = "./problems/"+string(argv[2])+"/out"; //change this output file name and the actual file for security issues
+		/*ifstream f1(file.c_str());
+		
+		file = "./problems/"+string(argv[2])+"/out";
+		ifstream f2(file.c_str());
+
+		string s="",b1,b2;
+		while(1)
+		{
+			f1>>s;
+			if(!s[0])
+				break;
+			b1 = b1+" "+s;
+			s[0]=0;
+		}
+		s="";
+		while(1)
+		{
+			f2>>s;
+			if(!s[0])
+				break;
+			b2 = b2+" "+s;
+			s[0]=0;
+		}
+*/
+
+		string diff="diff " + file1 + " " + file2;
+		int FLAG=system(diff.c_str());
+		if(WEXITSTATUS(FLAG)==0)
+			exit_status=RIGHT;
+		else
+			{
+			 string diff1="diff -bBiw " + file1 + " " + file2;
+			 int FLAG2=system(diff1.c_str());
+			 if(WEXITSTATUS(FLAG2)==0)
+			 	exit_status=PRESENTATION_ERROR;
+			 else
+			  	exit_status=WRONG;
+			}
+	}
+	
+	else
+	{
+		int inp = dup(0);
+		int op = dup(1);
+
+
+		string file;
+		file = path+"/op";
+		int ofid=open(file.c_str(),O_RDWR|O_CREAT|O_TRUNC,0666);
+		dup2(ofid,1);
+		
+
+		file = "./problems/"+string(argv[2])+"/in";    //change this input file name and the actual file for security issues
+		int ifid=open(file.c_str(),O_RDONLY,0);
+		dup2(ifid,0);
+		
+		file=path+"/a.out";
+		execv(file.c_str(),NULL);
+
+		dup2(inp,0);
+		dup2(op,1);
+		return 0;
+	}
+
+	#ifdef DEBUG
+		cerr<<err[exit_status]<<endl;
+	#endif
+	return exit_status;	
+}
+
+bool checkForSystemCalls(const char *filename)
+{
+	vector<string> functions, keywords;
+
+	//Read the banned functions from the file
+	ifstream func("banned_functions");
+	while(true)
+	{
+		string s;
+		func>>s;
+		if(func.eof()) break;
+		
+		functions.push_back(s);
+	}
+	func.close();
+
+	//Read the banned keywords from the file
+	ifstream key("banned_keywords");
+	while(true)
+	{
+		string s;
+		key>>s;
+		if(key.eof()) break;
+		
+		keywords.push_back(s);
+	}
+	key.close();
+
+	//Build regex pattern
+	string pattern = "([^a-zA-Z0-9_\\.>]+(";
+	for(int i=0 ; i<keywords.size() ; i++)
+	{
+		if(i>0) pattern += "|";
+		pattern += keywords[i];
+	}
+	pattern += ")[^a-zA-Z0-9_\\.]+)";
+
+	pattern += "|";
+	
+	pattern += "([^a-zA-Z0-9_\\.>]+(";
+	for(int i=0 ; i<functions.size() ; i++)
+	{
+		if(i>0) pattern += "|";
+		pattern += functions[i];
+	}
+	pattern += ")[ \t\n\r]*\\()";
+
+	//cout<<pattern<<endl;
+	return match(pattern.c_str(), filename);	
+}
+
+bool match(const char *pattern, const char *filename)
+{
+	//This does not behave exactly like grep
+	//The whole file is treated as a single line,
+	//so ^ and $ will not work in the regular expression
+	
+	regex_t reg;
+	regcomp(&reg, pattern, REG_EXTENDED|REG_NOTBOL|REG_NOTEOL);
+
+	regmatch_t matches[1];
+
+	ifstream in(filename);
+	if(!in) return false;
+
+	in.seekg(0, ios::end);
+	int length = in.tellg();
+	in.seekg(0, ios::beg);
+
+	char *buffer = new char[length+1];
+	in.read(buffer, length);
+	buffer[length] = '\0';
+
+	if(regexec(&reg, buffer, 1, matches, 0) == 0)
+		return true;
+
+	in.close();
+
+	return false;
+}

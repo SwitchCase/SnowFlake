@@ -1,0 +1,35 @@
+You are given n digits(0-9). Rearrange them so that the integer so formed has the least number of divisors.
+<br/>
+If more than one solution exits output the smallest one. You can use the digit '0' as leading digit.
+<br/>
+<strong>Constraints:</strong>
+<br/>
+1&lt;= n &lt;= 5
+<br/>
+Input contains atleast one non-zero digit.<br/>
+ 
+<strong>Input:</strong><br/>
+Input contains more than one test case.(number of test cases < 30)<br/>
+Each line has one test case.<br/>
+Each line contains the n digits for each test case.<br/>
+Take input until end of file.<br/>
+<br/>
+
+<strong>Output:</strong>
+One line for each test case, containing the rearraged integer with samllest number of divisors.
+<br/>
+<strong> Time Limit: </strong> &nbsp; 5s<br/>
+
+<strong>Sample input:<strong><br/>
+744<br/>
+21<br/>
+
+<strong>Output:</strong><br/>
+447<br/>
+21<br/>
+
+				
+				
+				
+				
+				

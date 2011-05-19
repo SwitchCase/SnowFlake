@@ -1,0 +1,13 @@
+A simple program with output of "hello world" (100000) times takes twice as much time as a simple program running in judge. 
+
+Result with real problem having 70 test cases with huge input file of 3 MB.
+Without judge:
+real	0m0.151s
+user	0m0.144s
+sys	0m0.008s
+
+with judge
+real	0m0.678s
+user	0m0.604s
+sys	0m0.056s
+

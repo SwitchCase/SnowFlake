@@ -1,0 +1,19 @@
+Dave found an old maths book in his primary schooling rug. He randomly turned to a page which taught him addition. But, to his amazement, all the + symbols from the text were missing to give a final sum. Now, he found it as a challenge to put in the missing '+'es in the script to find the given sum. Your task is to find the minimum no. of such '+'es between the script.
+
+INPUT:
+You will be given upto 10 test cases separated by an End of Line (\n) and ended by EOF (End of File). Each test case will contain a string split into 2 parts by an '=' symbol (No white spaces). First part will contain a string of upto 1000 characters (and may contain leading zeroes like "0008" would mean 8) and second will contain a value (<=5000).
+
+OUTPUT:
+An integral value of the minimum no. of '+'es in the script required.
+
+EXAMPLE:
+Input
+
+12612151=55
+115111410568=313
+
+Output
+
+4
+4
+

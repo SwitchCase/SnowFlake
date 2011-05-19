@@ -1,0 +1,40 @@
+Problem Statement:
+
+Arthur, standing in front of the piccadelli circus was gazing at the SANYO digital monitor in his dream. Suddenly, the SANYO board started displaying a scrolling message moving from right to left, a pretty long one. The message kept scrolling over and over again just like in the news telecasts. Arthur gazed at the message for some time and suddenly woke up from the dream to face Cobb. But, he suddenly felt the urgency of writing down the message because it could mean of a great value to their current mission. Though such a long message was impossible to memorize on a whole, but the repetition of the script could fetch them the real message.
+Arthur could remember 'a part' of what he had seen, in order. The aim now is to find the length of the smallest repetition possible within the message. For example, if he saw the phrase "abcabcab", the repetition could be "abcabc" or "abc" or "bca" or "cab" or "bcabca", then the smallest repetition's length is 3 as in "abc" or "bca".
+
+Assume a string S is of length L. A string s1 (of length l. l<=L) is said to be repitition of string S if s1 is written down infinitely many times in a row without any spaces and string S is a substring of this new string.
+In the above example:
+S = "abcabcab"
+s1= "bca"
+
+Writing s1 many times results in "bcabcabcabca....". Observe that "abcabcab" is a substring. Thus "bca" is a repitition.
+
+INPUT:
+
+First line of the input will contain the no. of testcases T, followed by T (1<=T<=10) lines containing X pairs of:
+N and S, where N is a positive integer which tells the no. of times S (sub-message) is repeated. For example, above input "abcabcab" can be written as "2 abc 1 ab". The expanded text will contain 1 to 1000000 characters. Length of X with all the pairs of N's and S's is <=100.
+
+OUTPUT:
+
+Output will indicate the length of the smallest repetition possible, separated by a line.
+
+TEST CASES:
+
+Input:
+
+3
+2 3 abc 1 ab
+1 1 babaaba
+4 1 ba 1 c 1 bacba 3 cba
+
+Output:
+
+3
+5
+3
+
+NOTE: Naive approach will give Time Limit Exceeded.
+
+Time Limit : 2 seconds
+

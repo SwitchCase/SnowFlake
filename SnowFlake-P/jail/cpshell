@@ -1,0 +1,12 @@
+
+mkdir  bin
+cp /bin/bash ./bin/
+mkdir -p ./lib/tls/i686/cmov usr/lib
+cp /lib/libncurses.so.5 ./lib/
+cp /usr/lib/libstdc++.so.6 ./usr/lib/
+cp /lib/libgcc_s.so.1 ./lib/
+cp /lib/tls/i686/cmov/libdl.so.2 ./lib/tls/i686/cmov/
+cp /lib/tls/i686/cmov/libc.so.6 ./lib/tls/i686/cmov/
+cp /lib/ld-linux.so.2 ./lib/
+cp /lib/tls/i686/cmov/libm.so.6 ./lib/tls/i686/cmov/
+#execute this file in jail ddirectory

@@ -1,0 +1,34 @@
+The binary weight of a positive integer is the number of 1's in its binary representation. 
+For example, the decimal number 1 has a binary weight of 1, and the decimal number 7 (which is 111 in binary) has a binary weight of 3.
+<br/><br/>
+Given a positive integer <strong>N</strong>, find the smallest integer greater than <strong>N</strong> that has the same binary weight as <strong>N</strong>.
+
+<br/><br/>
+
+<strong>INPUT</strong><br/>
+The first line of input contains a number <strong>T</strong> the number of test cases.
+The next <strong>T</strong> lines contain a number <strong>N</strong>.
+
+<br/><br/>
+
+<strong>OUTPUT</strong><br/>
+For each test case output a line containing the smallest number greater than <strong>N</strong> which has the same binary weight as <strong>N</strong>.
+
+<br/><br/>
+
+<strong>CONSTRAINTS</strong><br/>
+1 &lt;= <strong>N</strong> &lt;= 10000
+
+<br/><br/>
+
+<strong>SAMPLE INPUT</strong><br/>
+2<br/>
+3<br/>
+7
+
+<br/><br/>
+
+<strong>SAMPLE OUTPUT</strong><br/>
+5<br/>
+11
+

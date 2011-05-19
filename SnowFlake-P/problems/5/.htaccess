@@ -1,0 +1,9 @@
+<files in>
+order deny,allow
+deny from all
+</files>
+
+<files out>
+order deny,allow
+deny from all
+</files>

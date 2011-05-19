@@ -1,0 +1,49 @@
+<strong>Problem: No Problem</strong><br/>
+<br/>
+Your have been given some problems to solve. You have to first <br/>
+solve problem 0.Suppose you solve problem i, then you can solve<br/>
+ either problem i+1 or skip ahead to problem i+2.<br/> 
+You are not allowed to skip more than one problem. For example, {0, 2, 4, 5} is <br/>
+a valid order, but {0, 1, 3, 7} is not because the skip from 3 to 7 is too long.<br/>
+<br/>
+Each problem has a score, where score[i] indicates score of problem i. <br/>
+You can stop solving problems once the range of score you've encountered <br/>
+reaches a certain threshold.Specifically, you may stop once the difference <br/>
+between the maximum and minimum score of the problems you've solved is greater<br/>
+than or equal to the 'threshhold'.If this never happens, you must solve all the<br/>
+problems. Return the minimum number of problems you must solve to satisfy the <br/>
+given requirements. <br/>
+<br/>
+<strong>Input:</strong><br/>
+First line contains number of test cases.<br/>
+Each test cases are separated by a blank line. First line of each test case contains N (number of problems).<br/>
+Then follow a line containing N integers(0&lt;=N&lt;=60) which are the scores of the problems.<br/>
+Next line contains an integer T (threshhold).<br/>
+<br/>
+<strong>Output:</strong><br/>
+For each test case output a single line containing the minimum number of problems you must <br/>
+solve to satisfy the given requirements.<br/>
+<br/>
+<strong> Time Limit: </strong>&nbsp; 1s<br/>
+<br/>
+<strong>Sample Input:</strong><br/>
+3<br/>
+<br/>
+3<br/>
+1 2 3<br/>
+2<br/>
+<br/>
+5<br/>
+1 2 3 4 5<br/>
+4<br/>
+<br/>
+9<br/>
+6 2 6 2 6 3 3 3 7<br/>
+4<br/>
+<br/>
+<strong>Sample Output:</strong><br/>
+2<br/>
+3<br/>
+2<br/>
+				
+				

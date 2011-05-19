@@ -1,0 +1,40 @@
+The strength of a pair integer sequences is defined by the number of integers that they have in common. You are required to find the strength of several pairs of integer sequences.
+
+<br/><br/>
+
+<strong>INPUT</strong><br/>
+The first line of input contains <strong>T</strong>, the number of test cases.
+<strong>T</strong> test cases follow. Each test case contains <strong>3</strong> lines. The first line contains two integers <strong>N</strong> and <strong>M</strong>, which are the lengths of the two sequences. The next two lines contain the sequences.
+
+<br/><br/>
+
+<strong>OUTPUT</strong><br/>
+This should contain <strong>T</strong> lines, each containing an integer representing the strength of the pair of sequences for the corresponding test case.
+
+<br/><br/>
+
+<strong>CONSTRAINTS</strong><br/>
+The length of each sequence will be between <strong>1</strong> and <strong>20</strong> inclusive<br/>
+A sequence can contain an integer between <strong>1</strong> and <strong>100</strong> inclusive<br/>
+Sequences will not contain duplicate integers
+
+<br/><br/>
+
+<strong>SAMPLE INPUT</strong><br/>
+3<br/>
+4 4<br/>
+1 2 3 4<br/>
+3 4 5 6<br/>
+4 5<br/>
+1 2 3 4<br/>
+1 2 3 5 6<br/>
+3 4<br/>
+1 2 3<br/>
+5 6 7 4
+
+<br/><br/>
+
+<strong>SAMPLE OUTPUT</strong><br/>
+2<br/>
+3<br/>
+0<br/>

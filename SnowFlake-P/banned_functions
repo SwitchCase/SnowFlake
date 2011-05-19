@@ -1,0 +1,15 @@
+fork
+exec
+unlink
+vfork
+wait
+execl
+execv
+execlp
+execvp
+kill
+pipe
+dup
+system
+open
+fopen

@@ -1,0 +1,30 @@
+Dave found an old maths book in his primary schooling rug. He randomly <br/>
+turned to a page which taught him addition. But, to his amazement, <br/>
+all the + symbols from the text were missing to give a final sum. <br/>
+Now, he found it as a challenge to put in the missing '+'es in the<br/>
+ script to find the given sum. Your task is to find the minimum no. <br/>
+ of such '+'es between the script.<br/>
+<br/>
+<strong>INPUT:</strong>
+You will be given upto 10 test cases separated by an End of Line (\n) <br/>
+and ended by EOF (End of File). Each test case will contain a string split <br/>
+into 2 parts by an '=' symbol (No white spaces). First part will contain a <br/>
+string of upto 1000 characters (and may contain leading zeroes like "0008" would mean 8)<br/>
+ and second will contain a value (<=5000).<br/>
+<br/>
+<strong>OUTPUT:</strong><br/>
+An integral value of the minimum no. of '+'es in the script required.
+<br/>
+<strong> Time Limit: </strong> &nbsp;2s<br/> 
+<strong>EXAMPLE:</strong><br/>
+<strong>Input</strong><br/>
+<br/>
+12612151=55<br/>
+115111410568=313<br/>
+<br/>
+<strong>Output</strong><br/>
+<br/>
+4<br/>
+4<br/>
+
+				

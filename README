@@ -1,0 +1,5 @@
+##############READ ME ######################
+
+SnowFlake-P : This is the front end, fully working version of SnowFlake. This contains the PHP files and config files.
+
+SnowFlake-J : This is the back end judge which actually judges. It contains a cpp file and the SnowFlake service.

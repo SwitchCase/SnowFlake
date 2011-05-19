@@ -1,0 +1,38 @@
+A word is nice if it contains the same string as a proper prefix as well as a proper suffix. A proper prefix or suffix cannot be a long as the word itself.<br/><br/>
+e.g.<br/>
+<strong>manama</strong> is nice because it contains <strong>ma</strong> as a proper prefix as well as a proper suffix.</strong><br/>
+<strong>panama</strong> is not a nice word.<br/><br/>
+Find out if a word is nice or not.
+
+<br/><br/>
+
+<strong>INPUT</strong><br/>
+The first line of input contains <strong>T</strong>, the number of test cases.
+<strong>T</strong> test cases follow. Each test case contains a single word <strong>W</strong>.
+
+<br/><br/>
+
+<strong>OUTPUT</strong><br/>
+This should contain <strong>T</strong> lines, each containing either <strong>NICE</strong> or <strong>NOT</strong>
+<br/><br/>
+
+<strong>CONSTRAINTS</strong><br/>
+The length of any word will not exceed <strong>10</strong><br/>
+Each word will contain only uppercase letters
+
+<br/><br/>
+
+<strong>SAMPLE INPUT</strong><br/>
+4<br/>
+MANAMA<br/>
+PANAMA<br/>
+ABCDEFABC<br/>
+PANDORA
+
+<br/><br/>
+
+<strong>SAMPLE OUTPUT</strong><br/>
+NICE<br/>
+NOT<br/>
+NICE<br/>
+NOT
