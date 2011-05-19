@@ -63,6 +63,38 @@ int removeHash(char inp[],int l) {
 	return 0;
 }
 
+int isWhiteSpace(char a) {
+	return a==' ' || a=='\t';
+}
+
+int process(char *inp, char* lhs,char* eq,char* rhs) {
+	int n=strlen(inp);
+	int i=0;
+	int upd=-1;
+	int idx=0;
+	int chg=0;
+	while(i<n && isWhiteSpace(inp[i])) i++;
+	idx=0;
+	if(i>=n)return 1;
+	while(i<n && !isWhiteSpace(inp[i]) && inp[i]!='=') {
+		lhs[idx++]=inp[i++];
+	}	
+	cerr<<"PROCESS LHS"<<lhs<<endl;
+	while(i<n && isWhiteSpace(inp[i])) i++;
+	idx=0;
+	if(i>=n || inp[i]!='=')return 1;
+	eq[0]='=';
+	i++;
+	while(i<n && isWhiteSpace(inp[i])) i++;
+	idx=0;
+	if(i>=n)return 1;
+	while(i<n && !isWhiteSpace(inp[i]) && inp[i]!='=') {
+		rhs[idx++]=inp[i++];
+	}
+	return 0;
+	
+}
+
 int loadParameters() {
 	FILE *f=fopen("/etc/snowflake.conf","r");
 	if(f==NULL) {
@@ -88,32 +120,37 @@ int loadParameters() {
 		pro=trim(&buff[0],strlen(buff));
 		
 		cerr<<"REMAINING TO PROCESS "<<pro<<endl;
+		memset(lhs,0,sizeof(lhs));
+		memset(rhs,0,sizeof(rhs));
+		memset(equals,0,sizeof(equals));
 		
-		if(strlen(pro)>10 && sscanf(pro," %s %s %s",lhs,equals,rhs)==EOF) {
+		if(strlen(pro)>3 && process(pro,lhs,equals,rhs)) {
 			printDate();
 			fprintf(flog,"SnowFlake config is corrupt. Please Check\n");
-		} ;
-		cerr<<"LHS :"<<lhs<<"RHS :"<<rhs<<"eq :"<<equals<<endl;
-		lhsp=trim(&lhs[0],strlen(lhs));
-		eqp=trim(&equals[0],strlen(equals));
-		rhsp=trim(&rhs[0],strlen(rhs));
-		cerr<<lhsp<<" "<<eqp<<" "<<rhsp<<endl;
-		if(!strcmp(lhsp,"server") && !strcmp(eqp,"=")) {
-			memcpy(SRVR,rhsp,strlen(rhsp));	
-		}
-		else if(!strcmp(lhsp,"user") && !strcmp(eqp,"=")) {
-			memcpy(USR_NAME,rhsp,strlen(rhsp));
-			
-		}
-		else if(!strcmp(lhsp,"password") && !strcmp(eqp,"=")) {
-			memcpy(PASSWD,rhsp,strlen(rhsp));
-		}
-		else if(!strcmp(lhsp,"db_name") && !strcmp(eqp,"=")) {
-			memcpy(DB_NAME,rhsp,strlen(rhsp));
-		}
-		else {
-			printDate();
-			fprintf(flog,"SnowFlake config has invalid attribute. Please check.\n");
+		} 
+		else if(strlen(pro)>3) {
+			cerr<<"LHS :"<<lhs<<"RHS :"<<rhs<<"eq :"<<equals<<endl;
+			lhsp=trim(&lhs[0],strlen(lhs));
+			eqp=trim(&equals[0],strlen(equals));
+			rhsp=trim(&rhs[0],strlen(rhs));
+			cerr<<lhsp<<" "<<eqp<<" "<<rhsp<<endl;
+			if(!strcmp(lhsp,"server") && !strcmp(eqp,"=")) {
+				memcpy(SRVR,rhsp,strlen(rhsp));	
+			}
+			else if(!strcmp(lhsp,"user") && !strcmp(eqp,"=")) {
+				memcpy(USR_NAME,rhsp,strlen(rhsp));
+				
+			}
+			else if(!strcmp(lhsp,"password") && !strcmp(eqp,"=")) {
+				memcpy(PASSWD,rhsp,strlen(rhsp));
+			}
+			else if(!strcmp(lhsp,"db_name") && !strcmp(eqp,"=")) {
+				memcpy(DB_NAME,rhsp,strlen(rhsp));
+			}
+			else {
+				printDate();
+				fprintf(flog,"SnowFlake config has invalid attribute. Please check.\n");
+			}
 		}
 		memset(buff,0,sizeof(buff));	
 	}
