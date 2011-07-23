@@ -1,7 +1,6 @@
+#ifndef _snowFlake
+#define _snowFlake
 
-
-
-#define DB_TB_NAME "submissions"
 #define QUERY(c,s) mysql_query(c,s)
 #define RES mysql_store_result
 #define FIELDS_IN mysql_num_fields 
@@ -17,6 +16,7 @@ int removeHash(char[],int);
 int loadParameters();
 int isWhiteSpace(char);
 int process(char*,char*,char*,char*);
+int run();
 
-
+#endif
 

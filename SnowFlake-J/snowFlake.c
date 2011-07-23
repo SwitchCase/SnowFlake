@@ -13,113 +13,62 @@
 #include <mysql.h>
 
 #include "snowflake.h"
+#include "libs/argtable/argtable2.h"
 
 
 FILE *flog;
 char toExec[5][1000];
 MYSQL *conn;
 char SRVR[1000], USR_NAME[1000], PASSWD[1000], DB_NAME[1000];
+char DB_TB_NAME[]="submissions";
 
 
-int main(void) {
 
-	conn=mysql_init(NULL); /* mysql connection*/
-    if(loadParameters()) {
-    	printDate();
-    	fprintf(flog,"Failed to load Parameters. Exiting SnowFlake.\n");
-    	exit(EXIT_FAILURE);
-    }
-        /* Our process ID and Session ID */
-    pid_t pid, sid;
-    int status,exit_code;
-        /* Fork off the parent process */
-    pid = fork();
-    if (pid < 0) {
-    	printf("FAILED AT FORK\n");
-    	exit(EXIT_FAILURE);
-    }
-        /* If we got a good PID, then
-           we can exit the parent process. */
-    if (pid > 0) {
-    	printf("DONE AT FORK\n");        
-    	exit(EXIT_SUCCESS);
-    }
 
-        /* Change the file mode mask */
-    umask(0);
-        
-        /* Close out the standard file descriptors */
-        #ifndef DEBUG
-       		close(STDIN_FILENO);
-       		close(STDOUT_FILENO);
-        	close(STDERR_FILENO);
-        	flog=fopen("/var/log/snowflake/daemon.logs","w+"); /*Open file for read and write and start from beginning.*/    	
-        	
-        #else
-    		flog=stdout;
-        #endif
-
-		/* Open any logs here */                
-        
-    
-    if(flog==NULL) {
-    	printf("FAILED AT FILE\n");
-     	exit(EXIT_FAILURE);
-    }
-           
-    fprintf(flog,"SnowFlake started @");		                
-    printDate();
-    fprintf(flog,"\n--------------\n\n");
-        
-    /* Create a new SID for the child process */
-    sid = setsid();
-    if (sid < 0) {
-                /* Log the failure */
-    	exit(EXIT_FAILURE);
-    }
-        
-    /* Change the current working directory */
-    if ((chdir("/")) < 0) {
-        /* Log the failure */
-    	exit(EXIT_FAILURE);
-    }
-    flog=stdout;    
-   /* The Big Loop */
-    fprintf(flog,"MySQL client version: %s\n", mysql_get_client_info());
-    char *JUDGE="/var/www/judge/onj";
-    FILE *judge=fopen(JUDGE,"r");
-    if(judge==NULL) {
-    	printDate();
-    	fprintf(flog,"Judge does not exist. WTF man!!\n");
-    	exit(EXIT_FAILURE);
-    }
-    while (1) {
-        fflush(flog);
-        if(checkForQueuedItems()) {
-        	pid=fork();
-        	if(pid > 0) {
-        		printDate();
-        		fprintf(flog," Forked a child process pid=%d\n",pid);
-        		wait4(pid,&status,0,NULL);
-        		if(WIFEXITED(status)) {
-					exit_code=WEXITSTATUS(status);
-					UpdateRecord(conn, toExec[0],exit_code);
-					printDate();
-					fprintf(flog," %d Execution completed. Judge returned a status %d\n",pid,exit_code);
-        		}
-        	}
-        	else {
-        		execl(JUDGE,toExec[1],toExec[2],toExec[3]);
-        	}
-        }
-        else {
-    		sleep(5); /* wait 5 seconds */	 	 		              
-    	}
-    }
-    
-    fclose(flog);
-    CLOSE(conn);
-    exit(EXIT_SUCCESS);
+int main(int argc, char** argv) {
+	
+	struct arg_lit *start 	= arg_lit0("s", "start", "Starts SnowFlake.");
+	struct arg_lit *stop 	= arg_lit0("p", "stop", "Stops SnowFlake.");
+	struct arg_lit *restart = arg_lit0("r", "restart", "Restarts SnowFlake.");
+	struct arg_file *config = arg_file0("c", "config", "config_file", "Snowflake Configuration file.");
+	struct arg_lit *help  	= arg_lit0("h", "help", "Help menu");
+	struct arg_end *end 	= arg_end(10);
+	void *argtable[] 		= {start, stop, restart, config, help, end};
+	
+	if (arg_nullcheck(argtable) != 0) {
+		printf(" [ERROR] Insufficient memory to hold arguments.\n");
+	}	
+	
+	//Default file for configurations.
+	config->filename[0] = "/etc/snowflake.conf";
+	start->count = 1;
+	
+	int nerrors = arg_parse(argc, argv, argtable);
+	if ( !nerrors) {
+		printf("Options you have entered are:\n");
+		if (start->count) {
+			printf("Start SnowFlake Server.\n");
+		}
+		if (config->count) {
+			printf("Config file set to %s\n",config->filename[0]);
+		}
+		if (restart->count) {
+			printf("Restart SnowFlake Server.\n");
+		}
+		if (stop->count) {
+			printf("Stop SnowFlake Server.\n");
+		}
+		if (help->count) {
+			arg_print_glossary(stdout, argtable, "%-25s %s\n");
+		}
+	}
+	else {
+		arg_print_errors(stdout, end, "snowFlake");
+		printf("\nUsage:\nsnowFlake ");
+		arg_print_syntaxv(stdout, argtable, "\n\n");
+		arg_print_glossary(stdout, argtable, "%-25s %s\n");
+	}
+	
     
 }
 
@@ -132,6 +81,7 @@ void printDate() {
 	tod=localtime(&tt);
 	char AM[2][5]={"AM\0","PM\0"};
 	fprintf(flog," [%d-%d-%d :: %d:%d:%d%s] ",tod->tm_mday,tod->tm_mon+1,tod->tm_year+1900,tod->tm_hour%12,tod->tm_min,tod->tm_sec, AM[tod->tm_hour/12]);
+	fflush(flog);
 		
 }
 
@@ -161,13 +111,10 @@ int checkForQueuedItems() {
 		fprintf(flog,"Error %u: %s\n", mysql_errno(conn), mysql_error(conn));
         exit(1);
 	}
-	if (mysql_real_connect(conn, SRVR, USR_NAME, PASSWD, DB_NAME,0, NULL, 0) == NULL) {
-    	fprintf(flog,"Error %u: %s\n", mysql_errno(conn), mysql_error(conn));
-    	exit(1);
-    }
+	
     char query[1000];
     int i;
-    sprintf(query,"select id, problemid, src_cd, timelimit from %s where status>10 ORDER by time",DB_TB_NAME);
+    sprintf(query,"select id, problemid, src_cd, timelimit from %s where status>10 ORDER by time Limit 1",DB_TB_NAME);
 	if( QUERY(conn,query)!=0) {
 		fprintf(flog,"QUERY FAILED\n");
 		fprintf(flog,"Error %u: %s\n", mysql_errno(conn), mysql_error(conn));
@@ -309,5 +256,122 @@ int removeHash(char inp[],int l) {
 		i++;
 	}
 	return 0;
+}
+
+int run() {
+	conn=mysql_init(NULL); /* mysql connection*/
+    if(loadParameters()) {
+    	printDate();
+    	fprintf(flog,"Failed to load Parameters. Exiting SnowFlake.\n");
+    	exit(EXIT_FAILURE);
+    }
+        /* Our process ID and Session ID */
+    pid_t pid, sid;
+    int status,exit_code;
+        /* Fork off the parent process */
+    pid = fork();
+    if (pid < 0) {
+    	printf("FAILED AT FORK\n");
+    	exit(EXIT_FAILURE);
+    }
+        /* If we got a good PID, then
+           we can exit the parent process. */
+    if (pid > 0) {
+    	printf("DONE AT FORK\n");        
+    	exit(EXIT_SUCCESS);
+    }
+
+        /* Change the file mode mask */
+    umask(0);
+        
+        /* Close out the standard file descriptors */
+        #ifndef DEBUG
+       		close(STDIN_FILENO);
+       		close(STDOUT_FILENO);
+        	close(STDERR_FILENO);
+        	flog=fopen("/var/log/snowflake/daemon.logs","w+"); /*Open file for read and write and start from beginning.*/    	
+        	
+        #else
+    		flog=stdout;
+        #endif
+
+		/* Open any logs here */                
+        
+    
+    if(flog==NULL) {
+    	printf("FAILED AT FILE\n");
+     	exit(EXIT_FAILURE);
+    }
+           
+    fprintf(flog,"SnowFlake started @");		                
+    printDate();
+    fprintf(flog,"\n--------------\n\n");
+        
+    /* Create a new SID for the child process */
+    sid = setsid();
+    if (sid < 0) {
+                /* Log the failure */
+    	exit(EXIT_FAILURE);
+    }
+        
+    /* Change the current working directory */
+    if ((chdir("/")) < 0) {
+        /* Log the failure */
+    	exit(EXIT_FAILURE);
+    }
+    flog=stdout;    
+   /* The Big Loop */
+    fprintf(flog,"MySQL client version: %s\n", mysql_get_client_info());
+    char *JUDGE="/var/www/judge/onj";
+    FILE *judge=fopen(JUDGE,"r");
+    if(judge==NULL) {
+    	printDate();
+    	fprintf(flog,"Judge does not exist. WTF man!!\n");
+    	exit(EXIT_FAILURE);
+    }
+    if (mysql_real_connect(conn, SRVR, USR_NAME, PASSWD, DB_NAME,0, NULL, 0) == NULL) {
+    	fprintf(flog,"Error %u: %s\n", mysql_errno(conn), mysql_error(conn));
+    	exit(1);
+    }
+    while (1) {
+        fflush(flog);
+        #ifdef DEBUG
+        	fprintf(flog,"Checking for Queued Items\n");
+        #endif
+        if(checkForQueuedItems()) {
+        	pid=fork();
+        	if(pid > 0) {
+        		printDate();
+        		fprintf(flog," Forked a child process pid=%d\n",pid);
+        		fflush(flog);
+        		wait4(pid,&status,0,NULL);
+        		if(WIFEXITED(status)) {
+					exit_code=WEXITSTATUS(status);
+					#ifdef DEBUG
+						fprintf(flog,"Updating ... with status code=%d for id %s",exit_code,toExec[0]);
+						fflush(flog);
+					#endif
+					UpdateRecord(conn, toExec[0],exit_code);
+					printDate();
+					fprintf(flog," %d Execution completed. Judge returned a status %d\n",pid,exit_code);
+					fflush(flog);
+        		}
+        	}
+        	else {
+        		execl(JUDGE,toExec[1],toExec[2],toExec[3],NULL);
+        	}
+        }
+        else {
+        	#ifdef DEBUG
+        		fprintf(flog,"Sleeping for a while. Do not wake me.\n");
+        		fflush(flog);
+        	#endif
+    		sleep(5); /* wait 5 seconds */	 	 		              
+    	}
+    }
+    
+    fclose(flog);
+    CLOSE(conn);
+    exit(EXIT_FAILURE);
 }
 
