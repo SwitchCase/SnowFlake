@@ -10,18 +10,23 @@ REX   	  = $(LIBPATH)/arg_rex.o
 STR   	  = $(LIBPATH)/arg_str.o
 TABLE 	  = $(LIBPATH)/argtable2.o
 LIBS 	  = $(DATE) $(DBL) $(END) $(FILE) $(INT) $(LIT) $(REM) $(REX) $(STR) $(TABLE)
-SRC 	  = snowFlake.c
+SRCPATH   = src
+SRC 	  = $(SRCPATH)/snowFlake.c
+EXECPATH  = exec
+INCLUDE   = include
 
 all: $(SRC) snowFlake snowFlake-debug
 
-snowFlake: snowFlake.o $(LIBS)
-	gcc -o snowFlake snowFlake.o $(LIBS) -lmysqlclient_r
+snowFlake: $(EXECPATH)/snowFlake.o $(LIBS)
+	gcc -o snowFlake $(EXECPATH)/snowFlake.o $(LIBS) -lmysqlclient_r
 
-snowFlake-debug: snowFlake-debug.o $(LIBS)
-	gcc -o snowFlake-debug -g snowFlake-debug.o $(LIBS) -lmysqlclient_r
+snowFlake-debug: $(EXECPATH)/snowFlake-debug.o $(LIBS)
+	gcc -o snowFlake-debug -g $(EXECPATH)/snowFlake-debug.o $(LIBS) -lmysqlclient_r
 
-snowFlake.o: $(SRC)
-	gcc -o snowFlake.o -c -I /usr/include/mysql $(SRC)
+$(EXECPATH)/snowFlake.o: $(SRC)
+	gcc -o $(EXECPATH)/snowFlake.o -c -I /usr/include/mysql -I $(INCLUDE) $(SRC)
 
-snowFlake-debug.o: $(SRC)
-	gcc -o snowFlake-debug.o -c -I /usr/include/mysql $(SRC) -DDEBUG
+$(EXECPATH)/snowFlake-debug.o: $(SRC)
+	gcc -o $(EXECPATH)/snowFlake-debug.o -c -I /usr/include/mysql -I $(INCLUDE) $(SRC) -DDEBUG
+clean:
+	rm -rf $(EXECPATH)/* snowFlake snowFlake-debug
