@@ -1,18 +1,32 @@
 
 #include <stdio.h>
-#include "libs/argtable/argtable2.h"
+#include "libconfig.h"
 
 int main(int argc, char **argv) {
-	struct arg_int *s;
-	s = arg_int0("s", "scalar", "<n>", "foo value");
-	struct arg_end *end = arg_end(20);
-	void *argtable[] = {s, end};
 	
-	int nerrors = arg_parse(argc, argv, argtable);
-	if (nerrors == 0) {
+	char SRVR[1000];
+	char *p=SRVR;
+	config_t config;
+	config_init(&config);
+	if ( config_read_file(&config, "/etc/snowflake.conf") == CONFIG_TRUE ) {
+		printf("PARt 1\n");
+		const config_setting_t *setting = config_lookup(&config, "server");
 		
-		printf("--scalar = %d\n",s->ival[0]);
+		if( setting != NULL) {
+			p = config_setting_get_string(setting);
+			printf("opened file\n");	
+			printf("SERVER ADDRESS = %s\n",p);
+		}
+		else {
+			printf("ERROR\n");
+		}
 	}
-
+	else {
+		fprintf(stderr, "%s:%d - %s\n", config_error_file(&config),
+            config_error_line(&config), config_error_text(&config));
+    config_destroy(&config);
+    return(1);
+	}
+	
 	
 }

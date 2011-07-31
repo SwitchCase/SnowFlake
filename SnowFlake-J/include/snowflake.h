@@ -11,12 +11,10 @@
 void printDate();
 int UpdateRecord(MYSQL*,char*, int);
 int checkForQueuedItems();
-char* trim(char *,int);
-int removeHash(char[],int);
-int loadParameters();
-int isWhiteSpace(char);
-int process(char*,char*,char*,char*);
 int run();
+void killSelf();
+void cleanUp();
+void sigHandler(int);
 
 #endif
 

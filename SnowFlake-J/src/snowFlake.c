@@ -11,32 +11,37 @@
 #include <time.h>
 #include <my_global.h>
 #include <mysql.h>
+#include <signal.h>
 
 #include "snowflake.h"
 #include "argtable2.h"
-
+#include "libconfig.h"
 
 FILE *flog;
 char toExec[5][1000];
 MYSQL *conn;
-char SRVR[1000], USR_NAME[1000], PASSWD[1000], DB_NAME[1000];
-char DB_TB_NAME[] = "submissions";
-
-
+char* ATTR[7];
+char *SRVR, *USR_NAME, *PASSWD, *DB_NAME;
+char *DB_TB_NAME;
 
 
 int main(int argc, char** argv) {
+
+	signal(SIGINT, sigHandler);
+	signal(SIGSEGV, sigHandler);
 	
+ 	atexit(cleanUp);   	
+	flog = stderr;	
 	struct arg_lit *start 	= arg_lit0("s", "start", "Starts SnowFlake.");
 	struct arg_lit *stop 	= arg_lit0("p", "stop", "Stops SnowFlake.");
 	struct arg_lit *restart = arg_lit0("r", "restart", "Restarts SnowFlake.");
 	struct arg_file *config = arg_file0("c", "config", "config_file", "Snowflake Configuration file.");
 	struct arg_lit *help  	= arg_lit0("h", "help", "Help menu");
 	struct arg_end *end 	= arg_end(10);
-	void *argtable[] 	= {start, stop, restart, config, help, end};
+	void *argtable[] 		= { start, stop, restart, config, help, end };
 	
 	if (arg_nullcheck(argtable) != 0) {
-		printf(" [ERROR] Insufficient memory to hold arguments.\n");
+		fprintf(flog, " [ERROR] Insufficient memory to hold arguments.\n");
 	}	
 	
 	//Default file for configurations.
@@ -45,44 +50,57 @@ int main(int argc, char** argv) {
 	
 	int nerrors = arg_parse(argc, argv, argtable);
 	if ( !nerrors) {
-		printf("Options you have entered are:\n");
-		if (config->count) {
-			printf("Config file set to %s\n",config->filename[0]);
-		}
+		fprintf(flog, "Options you have entered are:\n");
 		
 		if (help->count) {
-			arg_print_glossary(stdout, argtable, "%-25s %s\n");
+			arg_print_glossary(flog, argtable, "%-25s %s\n");
 			exit(1);
 		}
 		
+		if (config->count || config->filename[0] != NULL) {
+			fprintf(flog, "Config file set to %s\n",config->filename[0]);
+			if ( loadFromConfig(config->filename[0]) != 0 ) {
+				fprintf(flog, "Snowflake config at %s may be corrupt.\n\n",config->filename[0]);
+				exit(1);
+			}
+			else {
+				SRVR 	 	= ATTR[0];
+				USR_NAME 	= ATTR[1];
+				PASSWD	 	= ATTR[2];
+				DB_NAME	 	= ATTR[3];
+				DB_TB_NAME  = ATTR[4];
+			}
+		}
+		
 		if ( start->count + restart->count + stop->count > 1) {
-			printf(" [ERROR] Start, Stop and Restart must be used independent of each other\n");
-			arg_print_syntaxv(stdout, argtable, "\n\n");
-			arg_print_glossary(stdout, argtable, "%-25s %s\n");	
+			fprintf(flog, " [ERROR] Start, Stop and Restart must be used independent of each other\n");
+			arg_print_syntaxv(flog, argtable, "\n\n");
+			arg_print_glossary(flog, argtable, "%-25s %s\n");	
 			exit(1);
 		} 
 		
 		if (restart->count) {
-			printf("Restart SnowFlake Server.\n");
-			kill();
+			fprintf(flog, "Restart SnowFlake Server.\n");
+			killSelf();
 			run();
 		}
 		else if (stop->count) {
-			printf("Stop SnowFlake Server.\n");
-			kill();	
+			fprintf(flog, "Stop SnowFlake Server.\n");
+			killSelf();	
 		}
 		else {
-			printf("Start SnowFlake Server.\n");
+			fprintf(flog, "Start SnowFlake Server.\n");
 			run();
 		}		
 	}
 	else {
-		arg_print_errors(stdout, end, "snowFlake");
-		printf("\nUsage:\nsnowFlake ");
-		arg_print_syntaxv(stdout, argtable, "\n\n");
-		arg_print_glossary(stdout, argtable, "%-25s %s\n");
+		arg_print_errors(flog, end, "snowFlake");
+		fprintf(flog, "\nUsage:\nsnowFlake ");
+		arg_print_syntaxv(flog, argtable, "\n\n");
+		arg_print_glossary(flog, argtable, "%-25s %s\n");
+		exit(1);
 	}
-    
+
 }
 
 
@@ -153,149 +171,27 @@ int checkForQueuedItems() {
 
 
 
-int loadParameters() {
-	FILE *f = fopen("/etc/snowflake.conf", "r");
-	if ( f == NULL ) {
-		printDate();
-		fprintf(flog, "SnowFlake configurations were not found. Service Killed\n");
-		exit(1);
-	}
-	char buff[1000], toprocess[1000], lhs[1000], equals[1000], rhs[1000];	
-	char wrd[1000];
-	int curr = 0, len, fi;
-	int w = 0;
-	int r;
-	char *pro;
-	char *lhsp, *rhsp, *eqp;
-	while( fgets(buff, sizeof(buff), f) != NULL ) {
-		fflush(f);
-		memset(toprocess, 0, sizeof (toprocess));
-		curr = 0;
-		fi = 0;
-		len = strlen(buff);
-
-		removeHash(buff, strlen(buff));
-		pro = trim(&buff[0], strlen(buff));
-		
-		memset(lhs, 0, sizeof(lhs));
-		memset(rhs, 0, sizeof(rhs));
-		memset(equals, 0, sizeof(equals));
-		
-		if ( strlen(pro) > 3 && process(pro, lhs, equals, rhs) ) {
-			printDate();
-			fprintf(flog, "SnowFlake config is corrupt. Please Check\n");
-		} 
-		else if ( strlen(pro) > 3) {
-			lhsp = trim(&lhs[0], strlen(lhs));
-			eqp = trim(&equals[0], strlen(equals));
-			rhsp = trim(&rhs[0], strlen(rhs));
-			if ( !strcmp(lhsp, "server") && !strcmp(eqp, "=") ) {
-				memcpy(SRVR, rhsp, strlen(rhsp));	
-			}
-			else if ( !strcmp(lhsp, "user") && !strcmp(eqp, "=") ) {
-				memcpy(USR_NAME, rhsp, strlen(rhsp));
-				
-			}
-			else if ( !strcmp(lhsp, "password") && !strcmp(eqp, "=") ) {
-				memcpy(PASSWD, rhsp, strlen(rhsp));
-			}
-			else if ( !strcmp(lhsp, "db_name") && !strcmp(eqp, "=") ) {
-				memcpy(DB_NAME, rhsp, strlen(rhsp));
-			}
-			else {
-				printDate();
-				fprintf(flog, "SnowFlake config has invalid attribute. Please check.\n");
-			}
-		}
-		memset(buff, 0, sizeof(buff));	
-	}
-	
-}
-
-
-int isWhiteSpace(char a) {
-	return a==' ' || a=='\t';
-}
-
-int process(char *inp, char* lhs, char* eq, char* rhs) {
-	int n = strlen(inp);
-	int i = 0;
-	int upd = -1;
-	int idx = 0;
-	int chg = 0;
-	while( i<n && isWhiteSpace(inp[i]) ) {
-	       	i++;
-	}
-	idx = 0;
-	if ( i>=n ) {
-		return 1;
-	}
-	while( i<n && !isWhiteSpace(inp[i]) && inp[i] != '=' ) {
-		lhs[idx++] = inp[i++];
-	}	
-	while( i<n && isWhiteSpace(inp[i]) ) {
-	       	i++;
-	}
-	idx = 0;
-	if ( i >= n || inp[i] != '=' ) {
-		return 1;
-	}
-	eq[0] = '=';
-	i++;
-	while( i<n && isWhiteSpace(inp[i]) ) {
-	       	i++;
-	}
-	idx = 0;
-	if ( i >= n ) {
-		return 1;
-	}
-	while( i<n && !isWhiteSpace(inp[i]) && inp[i] != '=' ) {
-		rhs[idx++]=inp[i++];
-	}
-	return 0;
-	
-}
-
-char * trim(char *inp, int n) {
-	int i = 0;
-	while( i++ < n ) {
-		if ( *inp == '\t' || *inp == '\r' || *inp == ' ') {
-			inp++;
-		}
-		else {
-			return inp;
-		}
-	}
-	return inp;
-}
-
-int removeHash(char inp[], int l) {
-	int i = 0;
-	int ff = 0;
-	while( i < l ) {
-	
-		if ( !ff && inp[i] == '#') {
-			inp[i] = 0;
-			ff = 1;
-		}
-		else if( ff ) {
-			inp[i] = 0;
-		}
-		i++;
-	}
-	return 0;
-}
-
 int run() {
     conn = mysql_init(NULL); /* mysql connection*/
-    if ( loadParameters() ) {
-    	printDate();
-    	fprintf(flog, "Failed to load Parameters. Exiting SnowFlake.\n");
-    	exit(EXIT_FAILURE);
-    }
+   	pid_t myPid = getpid();
         /* Our process ID and Session ID */
     pid_t pid, sid;
     int status, exit_code;
+    fprintf(flog, "MySQL client version: %s\n", mysql_get_client_info());
+    char *JUDGE = "/var/www/judge/onj";
+    FILE *judge = fopen(JUDGE,"r");
+    if ( judge == NULL ) {
+    	printDate();
+    	fprintf(flog, "Judge does not exist. WTF man!!\n");
+    	exit(EXIT_FAILURE);
+    }
+    if ( mysql_real_connect(conn, SRVR, USR_NAME, PASSWD, DB_NAME, 0, NULL, 0) == NULL ) {
+    	fprintf(flog, "Error %u: %s\n", mysql_errno(conn), mysql_error(conn));
+    	exit(1);
+    }
+    
+    
+    
         /* Fork off the parent process */
     pid = fork();
     if ( pid < 0 ) {
@@ -305,7 +201,7 @@ int run() {
         /* If we got a good PID, then
            we can exit the parent process. */
     if ( pid > 0 ) {
-    	printf("DONE AT FORK\n");        
+    	printf("DONE AT FORK\nCreated Child %d using parent %d\n\n",pid, myPid);        
     	exit(EXIT_SUCCESS);
     }
 
@@ -317,7 +213,7 @@ int run() {
        		close(STDIN_FILENO);
        		close(STDOUT_FILENO);
         	close(STDERR_FILENO);
-        	flog=fopen("/var/log/snowflake/daemon.logs","w+"); /*Open file for read and write and start from beginning.*/    	
+        	flog=fopen("/var/log/snowflake/daemon.logs","a+"); /*Open file for read and write and start from beginning.*/    	
         	
         #else
     		flog=stdout;
@@ -333,12 +229,13 @@ int run() {
            
     fprintf(flog, "SnowFlake started @");		                
     printDate();
-    fprintf(flog, "\n--------------\n\n");
+    fprintf(flog, "with pid = %d\n--------------\n\n",myPid);
         
     /* Create a new SID for the child process */
     sid = setsid();
     if ( sid < 0 ) {
                 /* Log the failure */
+        fprintf(flog, "Snowflake died because setsid failed.\n\n");
     	exit(EXIT_FAILURE);
     }
         
@@ -349,18 +246,7 @@ int run() {
     }
     flog = stdout;    
    /* The Big Loop */
-    fprintf(flog, "MySQL client version: %s\n", mysql_get_client_info());
-    char *JUDGE = "/var/www/judge/onj";
-    FILE *judge = fopen(JUDGE,"r");
-    if ( judge == NULL ) {
-    	printDate();
-    	fprintf(flog, "Judge does not exist. WTF man!!\n");
-    	exit(EXIT_FAILURE);
-    }
-    if ( mysql_real_connect(conn, SRVR, USR_NAME, PASSWD, DB_NAME, 0, NULL, 0) == NULL ) {
-    	fprintf(flog, "Error %u: %s\n", mysql_errno(conn), mysql_error(conn));
-    	exit(1);
-    }
+
     while (1) {
         fflush(flog);
         #ifdef DEBUG
@@ -403,3 +289,48 @@ int run() {
     exit(EXIT_FAILURE);
 }
 
+int loadFromConfig(char *config_file) {
+	config_t config;
+	config_init(&config);
+	const char* attr[] ={"server", "user", "password", "db_name", "db_table", NULL};
+	int curr=0;
+	if ( config_read_file(&config, config_file) == CONFIG_TRUE ) {
+		while( attr[curr] != NULL ) {
+			const config_setting_t *setting = config_lookup(&config, attr[curr]);
+			
+			if( setting != NULL) {
+				ATTR[curr] = config_setting_get_string(setting);
+				fprintf(flog, "%s is %s\n", attr[curr], ATTR[curr]);
+			}
+			else {
+				fprintf(flog, "Setting %s not found. Please check\n", attr[curr]);
+				config_destroy(&config);
+				return 1;
+			}
+			curr++;
+		}
+	}
+	else {
+		fprintf(flog, "%s:%d - %s\n", config_error_file(&config),
+            config_error_line(&config), config_error_text(&config));
+   		config_destroy(&config);
+   		return 1;
+	}
+	
+}
+
+void cleanUp() {
+	printDate();
+	fprintf(flog, "SnowFlake Dying !!\n"); 
+	fflush(flog);
+	close(flog);
+}
+void killSelf() {
+	system("killall -s 9 snowFlake");
+}
+
+void sigHandler(int signum) {
+	fprintf(flog, "Snowflake recvd signal %d\n",signum);
+	fprintf(flog, "Snowflake killed\n");	
+	exit(1);
+}
