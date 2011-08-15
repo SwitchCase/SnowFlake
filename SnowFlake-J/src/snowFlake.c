@@ -20,16 +20,19 @@
 FILE *flog;
 char toExec[5][1000];
 MYSQL *conn;
-char* ATTR[7];
+char* ATTR[8][256];
 char *SRVR, *USR_NAME, *PASSWD, *DB_NAME;
 char *DB_TB_NAME;
+char *JUDGE;
+char *CONFIG;
+
+int sighup_recvd;
 
 
 int main(int argc, char** argv) {
 
-	signal(SIGINT, sigHandler);
-	signal(SIGSEGV, sigHandler);
-	
+	sighup_recvd = 0;
+ 	signal(SIGHUP, sigHandler);	
  	atexit(cleanUp);   	
 	flog = stderr;	
 	struct arg_lit *start 	= arg_lit0("s", "start", "Starts SnowFlake.");
@@ -46,8 +49,9 @@ int main(int argc, char** argv) {
 	
 	//Default file for configurations.
 	config->filename[0] = "/etc/snowflake.conf";
+	CONFIG = (char*) &config->filename[0];
 	start->count = 1;
-	
+	int MODE = 0; /*Whether to Run or not!*/
 	int nerrors = arg_parse(argc, argv, argtable);
 	if ( !nerrors) {
 		fprintf(flog, "Options you have entered are:\n");
@@ -58,18 +62,21 @@ int main(int argc, char** argv) {
 		}
 		
 		if (config->count || config->filename[0] != NULL) {
+			CONFIG = (char*)  &config->filename[0];
 			fprintf(flog, "Config file set to %s\n",config->filename[0]);
 			if ( loadFromConfig(config->filename[0]) != 0 ) {
 				fprintf(flog, "Snowflake config at %s may be corrupt.\n\n",config->filename[0]);
 				exit(1);
 			}
 			else {
-				SRVR 	 	= ATTR[0];
-				USR_NAME 	= ATTR[1];
-				PASSWD	 	= ATTR[2];
-				DB_NAME	 	= ATTR[3];
-				DB_TB_NAME  = ATTR[4];
+				SRVR 	 	= (char*) ATTR[0];
+				USR_NAME 	= (char*) ATTR[1];
+				PASSWD	 	= (char*) ATTR[2];
+				DB_NAME	 	= (char*) ATTR[3];
+				DB_TB_NAME  = (char*) ATTR[4];
+				JUDGE 		= (char*) ATTR[5];
 			}
+			
 		}
 		
 		if ( start->count + restart->count + stop->count > 1) {
@@ -82,7 +89,7 @@ int main(int argc, char** argv) {
 		if (restart->count) {
 			fprintf(flog, "Restart SnowFlake Server.\n");
 			killSelf();
-			run();
+			MODE = 1;
 		}
 		else if (stop->count) {
 			fprintf(flog, "Stop SnowFlake Server.\n");
@@ -90,7 +97,7 @@ int main(int argc, char** argv) {
 		}
 		else {
 			fprintf(flog, "Start SnowFlake Server.\n");
-			run();
+			MODE = 1;
 		}		
 	}
 	else {
@@ -100,7 +107,12 @@ int main(int argc, char** argv) {
 		arg_print_glossary(flog, argtable, "%-25s %s\n");
 		exit(1);
 	}
+	arg_freetable(argtable, sizeof(argtable)/sizeof(argtable[0]));
+	if ( MODE ) {
+		run();
+	}
 
+	return 0;
 }
 
 
@@ -121,6 +133,8 @@ void printDate() {
 int UpdateRecord(MYSQL *conn,  char* user, int status) {
 	char query[1000];
 	sprintf(query, "UPDATE %s SET status=%d where id='%s'", DB_TB_NAME, status, user);
+	printDate();
+	fprintf(flog, "Trying query %s\n\n",query);
 	if ( QUERY(conn,query) != 0 ) {
 		fprintf(flog, "##FAILED :: Query --- %s\nError %u: %s\n", query, mysql_errno(conn), mysql_error(conn));
 		return -1;
@@ -134,8 +148,10 @@ int checkForQueuedItems() {
 	
 	MYSQL_RES *result;
 	MYSQL_ROW row;
-	MYSQL_FIELD *field;
-	
+	#ifdef DEBUG
+		printDate();
+		fprintf(flog, "Inside Checking\n\n");
+	#endif
 	int ret = 0;
 
 	if ( conn == NULL ) {  
@@ -146,112 +162,116 @@ int checkForQueuedItems() {
     char query[1000];
     int i;
     sprintf(query, "select id, problemid, src_cd, timelimit from %s where status>10 ORDER by time Limit 1", DB_TB_NAME);
+    #ifdef DEBUG
+		printDate();
+		fprintf(flog, "Trying query \"%s\"\n\n", query);
+	#endif
 	if ( QUERY(conn, query) != 0 ) {
 		fprintf(flog, "QUERY FAILED\n");
 		fprintf(flog, "Error %u: %s\n", mysql_errno(conn), mysql_error(conn));
 		exit(1);
 	}
+	printDate();
+	fprintf(flog, "Query finished \n\n");
 	result = RES(conn);
 	int fields = FIELDS_IN(result);
 	int tot = 0;
 	row = ROW(result);
 	tot++;
-	for( i=0; i < fields; i++) {
-		strcpy(toExec[i], row[i]);
-		ret = 1;
-	}	
-	UpdateRecord(conn, toExec[0], 10);	
+	fprintf(flog, "Fields in result %d and rows\n\n",fields);
+	if ( fields && row) {
+		for( i=0; i < fields; i++) {
+			strcpy(toExec[i], row[i]);
+			ret = 1;
+		}	
+		UpdateRecord(conn, toExec[0], 10);	
+	}
+	else {
+		printDate();
+		fprintf(flog, "Query returned nothing\n\n");
+	}
 	
 	fprintf(flog, "\n");
 	fprintf(flog, "TOTAL %d\n", tot);
 	FREE(result);
-
+	fprintf(flog, "Going to return %d from CQI\n\n", ret);
 	return ret;
 }
 
 
 
 int run() {
-    conn = mysql_init(NULL); /* mysql connection*/
-   	pid_t myPid = getpid();
-        /* Our process ID and Session ID */
+    pid_t myPid = getpid();
+    /* Our process ID and Session ID */
     pid_t pid, sid;
     int status, exit_code;
-    fprintf(flog, "MySQL client version: %s\n", mysql_get_client_info());
-    char *JUDGE = "/var/www/judge/onj";
+    switch ( (pid = fork()) ) {
+	case 0: break;
+	case -1: return -1;
+	default: fprintf(flog, "Exiting after 1st fork and pid of child is %d\n\n", pid);
+		 exit(0);
+
+    } 
+
+    if ( (sid = setsid()) == (pid_t)-1) {
+	fprintf(flog, "[ERROR] setsid() failed for pid = %d !!\n\n", pid);
+    }
+    fprintf(flog, "Setsid returned %d\n\n", sid);
+	
+    switch ( (pid = fork()) ) {
+	case -1 : return -1;
+	case 0  : break;
+	default : fprintf(flog, "Exiting after 2nd fork and pid of child is %d\n\n", pid);	
+		  exit(0);
+    }
+    /*clean file mode creation mask */
+    umask(0);
+    /* change directory to root directory.*/
+    chroot("/");
+    myPid = getpid();  
+    /* Connect to MYSQL Connection*/
+    conn = mysql_init(NULL); 
+    fprintf(flog, "MySQL client version: %s on pid = %d\n", mysql_get_client_info(), myPid);
+    if ( mysql_real_connect(conn, SRVR, USR_NAME, PASSWD, DB_NAME, 0, NULL, 0) == NULL ) {
+    	fprintf(flog, "Error %u: %s on pid = %d\n", mysql_errno(conn), mysql_error(conn), myPid);
+	exit(1);
+    }
+
+    /* Ensure that the JUDGE EXISTS*/
     FILE *judge = fopen(JUDGE,"r");
     if ( judge == NULL ) {
     	printDate();
     	fprintf(flog, "Judge does not exist. WTF man!!\n");
     	exit(EXIT_FAILURE);
     }
-    if ( mysql_real_connect(conn, SRVR, USR_NAME, PASSWD, DB_NAME, 0, NULL, 0) == NULL ) {
-    	fprintf(flog, "Error %u: %s\n", mysql_errno(conn), mysql_error(conn));
-    	exit(1);
-    }
-    
-    
-    
-        /* Fork off the parent process */
-    pid = fork();
-    if ( pid < 0 ) {
-    	printf("FAILED AT FORK\n");
-    	exit(EXIT_FAILURE);
-    }
-        /* If we got a good PID, then
-           we can exit the parent process. */
-    if ( pid > 0 ) {
-    	printf("DONE AT FORK\nCreated Child %d using parent %d\n\n",pid, myPid);        
-    	exit(EXIT_SUCCESS);
-    }
 
-        /* Change the file mode mask */
-    umask(0);
-        
-        /* Close out the standard file descriptors */
-        #ifndef DEBUG
-       		close(STDIN_FILENO);
-       		close(STDOUT_FILENO);
-        	close(STDERR_FILENO);
-        	flog=fopen("/var/log/snowflake/daemon.logs","a+"); /*Open file for read and write and start from beginning.*/    	
+    /* Close out the standard file descriptors */
+    #ifndef DEBUG
+  	close(STDIN_FILENO);
+       	close(STDOUT_FILENO);
+        close(STDERR_FILENO);
+        flog = fopen("/var/log/snowflake/daemon.logs","w+"); /*Open file for read and write and start from beginning.*/    	
         	
-        #else
-    		flog=stdout;
-        #endif
+    #else
+    	flog = stdout;
+    #endif
 
-		/* Open any logs here */                
-        
-    
+    /* Open any logs here */                
     if ( flog == NULL ) {
     	printf("FAILED AT FILE\n");
      	exit(EXIT_FAILURE);
     }
-           
+    
+    myPid = getpid();    
     fprintf(flog, "SnowFlake started @");		                
     printDate();
     fprintf(flog, "with pid = %d\n--------------\n\n",myPid);
         
-    /* Create a new SID for the child process */
-    sid = setsid();
-    if ( sid < 0 ) {
-                /* Log the failure */
-        fprintf(flog, "Snowflake died because setsid failed.\n\n");
-    	exit(EXIT_FAILURE);
-    }
-        
-    /* Change the current working directory */
-    if ( chdir("/") < 0 ) {
-        /* Log the failure */
-    	exit(EXIT_FAILURE);
-    }
-    flog = stdout;    
    /* The Big Loop */
 
     while (1) {
         fflush(flog);
-        #ifdef DEBUG
-        	fprintf(flog, "Checking for Queued Items\n");
-        #endif
+       	fprintf(flog, "Checking for Queued Items\n");
         if ( checkForQueuedItems() ) {
         	pid = fork();
         	if ( pid > 0 ) {
@@ -261,27 +281,59 @@ int run() {
         		wait4(pid, &status, 0, NULL);
         		if ( WIFEXITED(status) ) {
 					exit_code = WEXITSTATUS(status);
-					#ifdef DEBUG
-						fprintf(flog, "Updating ... with status code=%d for id %s", exit_code, toExec[0]);
-						fflush(flog);
-					#endif
+					fprintf(flog, "Updating ... with status code=%d for id %s", exit_code, toExec[0]);
+					fflush(flog);
 					UpdateRecord(conn, toExec[0], exit_code);
 					printDate();
 					fprintf(flog, " %d Execution completed. Judge returned a status %d\n", pid, exit_code);
 					fflush(flog);
         		}
+        		else {
+        			if ( WIFSIGNALED(status) ) {
+        				status = WTERMSIG(status);
+					}
+        			printDate();
+        			fprintf(flog, "Exit status was wierd! Terminated with signal %d\n\n", status );
+        		}
         	}
         	else {
-        		execl(JUDGE, toExec[1], toExec[2], toExec[3], NULL);
+        		if (execl(JUDGE, toExec[1], toExec[2], toExec[3], NULL)) {
+        			fprintf(flog, "[ERROR] Exec failed on \"%s %s %s %s\"\n\n",JUDGE, toExec[1], toExec[2], toExec[3]);
+        		}
         	}
         }
         else {
-        	#ifdef DEBUG
-        		fprintf(flog, "Sleeping for a while. Do not wake me.\n");
-        		fflush(flog);
-        	#endif
+       		fprintf(flog, "Sleeping for a while. Do not wake me.\n");
+       		fflush(flog);
     		sleep(5); /* wait 5 seconds */	 	 		              
     	}
+	if ( sighup_recvd ) {
+		sighup_recvd = 0;
+		printDate();
+		fprintf(flog, "Resetting Daemon\n\n");
+		fprintf(flog, "Reloading config\n\n");
+		if ( loadFromConfig(CONFIG) != 0 ) {
+			fprintf(flog, "Snowflake config at %s may be corrupt.\n\n",CONFIG);
+			exit(1);
+		}
+		else {
+			SRVR            = (char*) ATTR[0];
+			USR_NAME        = (char*) ATTR[1];
+			PASSWD          = (char*) ATTR[2];
+			DB_NAME         = (char*) ATTR[3];
+			DB_TB_NAME      = (char*) ATTR[4];
+			JUDGE           = (char*) ATTR[5];
+		}
+		printDate();
+		fprintf(flog, "Resetting MYSQL connection\n\n");
+		CLOSE(conn);
+		conn = mysql_init(NULL);
+		fprintf(flog, "MySQL client version: %s\n", mysql_get_client_info());
+		if ( mysql_real_connect(conn, SRVR, USR_NAME, PASSWD, DB_NAME, 0, NULL, 0) == NULL ) {
+			fprintf(flog, "Error %u: %s\n", mysql_errno(conn), mysql_error(conn));
+			exit(1);
+		}
+	}
     }
     
     fclose(flog);
@@ -289,17 +341,18 @@ int run() {
     exit(EXIT_FAILURE);
 }
 
-int loadFromConfig(char *config_file) {
+int loadFromConfig(const char *config_file) {
 	config_t config;
 	config_init(&config);
-	const char* attr[] ={"server", "user", "password", "db_name", "db_table", NULL};
+	const char* attr[] ={"server", "user", "password", "db_name", "db_table", "judge",NULL};
 	int curr=0;
 	if ( config_read_file(&config, config_file) == CONFIG_TRUE ) {
 		while( attr[curr] != NULL ) {
 			const config_setting_t *setting = config_lookup(&config, attr[curr]);
 			
 			if( setting != NULL) {
-				ATTR[curr] = config_setting_get_string(setting);
+				char *tmp = (char*) config_setting_get_string(setting);
+				memcpy(ATTR[curr], tmp, strlen(tmp));
 				fprintf(flog, "%s is %s\n", attr[curr], ATTR[curr]);
 			}
 			else {
@@ -312,18 +365,20 @@ int loadFromConfig(char *config_file) {
 	}
 	else {
 		fprintf(flog, "%s:%d - %s\n", config_error_file(&config),
-            config_error_line(&config), config_error_text(&config));
+	    config_error_line(&config), config_error_text(&config));
    		config_destroy(&config);
    		return 1;
 	}
-	
+	config_destroy(&config);
+
+	return 0;
 }
 
 void cleanUp() {
 	printDate();
 	fprintf(flog, "SnowFlake Dying !!\n"); 
 	fflush(flog);
-	close(flog);
+	fclose(flog);
 }
 void killSelf() {
 	system("killall -s 9 snowFlake");
@@ -331,6 +386,10 @@ void killSelf() {
 
 void sigHandler(int signum) {
 	fprintf(flog, "Snowflake recvd signal %d\n",signum);
+	if ( signum == SIGHUP ) {
+		sighup_recvd = 1;
+		return;
+	}
 	fprintf(flog, "Snowflake killed\n");	
 	exit(1);
 }

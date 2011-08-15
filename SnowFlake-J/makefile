@@ -1,4 +1,4 @@
-#ARGLIB_PATH     = libs/argtable
+ARGTABLE     = libs/argtable
 #DATE	  	= $(ARGLIB_PATH)/arg_date.o
 #DBL  	  	= $(ARGLIB_PATH)/arg_dbl.o
 #END 	  	= $(ARGLIB_PATH)/arg_end.o
@@ -15,24 +15,36 @@ SRC 	  	= $(SRCPATH)/snowFlake.c
 EXECPATH  	= exec
 INCLUDE   	= include
 CONFIG   	= libs/libconfig
-LIBRARY 	= -lmysqlclient_r -lconfig -largtable2
-LDFLAGS 	= -lz -lpthread -lm -static -static-libgcc
-LDPATH  	= -L./libs/argtable -L./libs/libconfig
-
+LIBRARY 	= -lmysqlclient -lconfig -largtable2
+LDFLAGS 	= -lz -lpthread -lm -static -static-libgcc -Wall -mglibc -static-libstdc
+LDPATH  	= -Llibs/argtable -Llibs/libconfig
 
 all: $(SRC) snowFlake snowFlake-debug
 snowFlake: $(EXECPATH)/snowFlake.o $(ARGLIB)
 	gcc -o snowFlake $(EXECPATH)/snowFlake.o $(LIBRARY) $(LDFLAGS)  $(LDPATH)
 
 snowFlake-debug: $(EXECPATH)/snowFlake-debug.o $(ARGLIB)
-	gcc -o snowFlake-debug -g $(EXECPATH)/snowFlake-debug.o  $(LIBRARY) $(LDFLAGS) $(LDPATH)
+	gcc -o snowFlake-debug -g $(EXECPATH)/snowFlake-debug.o  $(LIBRARY) $(LDFLAGS) $(LDPATH -DDEBUG)
 
 $(EXECPATH)/snowFlake.o: $(SRC)
-	gcc -o $(EXECPATH)/snowFlake.o -c -I /usr/include/mysql -I $(INCLUDE) $(SRC)
+	gcc -o $(EXECPATH)/snowFlake.o -c -I /usr/include/mysql -I $(INCLUDE) $(SRC) $(LDFLAGS)
 
 $(EXECPATH)/snowFlake-debug.o: $(SRC)
-	gcc -o $(EXECPATH)/snowFlake-debug.o -c -I /usr/include/mysql -I $(INCLUDE) $(SRC) -DDEBUG
+	gcc -o $(EXECPATH)/snowFlake-debug.o -c -I /usr/include/mysql -I $(INCLUDE) $(SRC) -DDEBUG $(LDFLAGS)
 clean:
 	rm -rf $(EXECPATH)/* snowFlake snowFlake-debug
 smaller: $(SRCPATH)/smaller.c
 	gcc -o smaller -L libs/libconfig -lconfig -I $(INCLUDE) $(SRCPATH)/smaller.c -g
+libargtable: $(ARGTABLE)/libargtable2.a
+	echo "Changing directory to $(ARGTABLE)"
+	cd $(ARGTABLE)
+	ar -x $(ARGTABLE)/libargtable2.a
+	cd ../..
+	echo "Comng back"
+libconfig: $(CONFIG)/libconfig.a
+	echo "Changing directory to $(CONFIG)"
+	cd $(CONFIG)
+	ar -x $(CONFIG)/libconfig.a
+	cd ../..
+	echo "Coming back"
+

@@ -1,6 +1,6 @@
 #ifndef _snowFlake
 #define _snowFlake
-
+#include <mysql.h>
 #define QUERY(c,s) mysql_query(c,s)
 #define RES mysql_store_result
 #define FIELDS_IN mysql_num_fields 
@@ -15,6 +15,6 @@ int run();
 void killSelf();
 void cleanUp();
 void sigHandler(int);
-
+int loadFromConfig( const char*);
 #endif
 
