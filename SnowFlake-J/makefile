@@ -15,8 +15,8 @@ SRC 	  	= $(SRCPATH)/snowFlake.c
 EXECPATH  	= exec
 INCLUDE   	= include
 CONFIG   	= libs/libconfig
-LIBRARY 	= -lmysqlclient -lconfig -largtable2
-LDFLAGS 	= -lz -lpthread -lm -static -static-libgcc -Wall -mglibc -static-libstdc
+LIBRARY 	= -lmysqlclient  -static libs/libconfig/libconfig.a -static libs/argtable/libargtable2.a
+LDFLAGS 	= -lz -lpthread -lm -static -static-libgcc -Wall -mglibc
 LDPATH  	= -Llibs/argtable -Llibs/libconfig
 
 all: $(SRC) snowFlake snowFlake-debug

@@ -1,0 +1,76 @@
+###################### SnowFlake Back-end ################################
+
+Contents
+--------------------------------------------------------------------------
+1 Directory Structure
+1.1 include
+1.2 exec
+1.3 src
+1.4 libs
+--------------------------------------------------------------------------
+2 What happens Behind the Scenes
+--------------------------------------------------------------------------
+3 Logs
+--------------------------------------------------------------------------
+4 Setting up SnowFlake
+4.1 Creating Config File
+__________________________________________________________________________
+
+1. Directory Structure
+----------------------
+Currently SnowFlake consists of four directories.
+
+1.1 include
+-----------
+This contails the header files necessary for snowflake to run. snowflake.h
+is the SnowFlake header file. The rest of them are part of the two 3rd 
+party Open Source Libraries - libconfig and argtable.
+
+1.2 exec
+--------
+All binaries that are built are stored in this directory
+
+1.3 src
+-------
+
+All source code (.c,.cpp etc) are stored here.
+
+1.4 libs
+--------
+The libraries libconfig and argtable reside in this directory. Apart from 
+these two, SnowFlake also need MySQL which is installed on the system.
+__________________________________________________________________________
+
+2. What Happens Behind the Scenes
+---------------------------------
+SnowFlake service periodically queries the DATABASE on the DATABASE TABLE 
+specified in the config file and checks to see if there are any 
+submissions that need processing. Once it realizes that there are such 
+items in the queue, it tries to see if it is possible to process them.
+If it sees it fit, it will remove the item from this queue and set up 
+the JUDGE and run it. Based on the result, it will update the 
+DATABASE TABLE with the verdict.
+__________________________________________________________________________
+
+3. Logs
+-------
+SnowFlake typically logs everything onto a log file at 
+/var/log/snowflake.log. If snowflake-debug is run, then all log data is 
+redirected to the terminal.
+__________________________________________________________________________
+
+4. Setting up Snowflake
+-----------------------
+
+4.1 Configuring SnowFlake
+-------------------------
+The default Snowflake config file is /etc/snowflake.conf. It can be changed
+via the cmd line option '--config <FILE>'. Config File must have this 
+format with these values set -
+username = "<MYSQL USER>";
+password = "<MYSQL USER PASSWORD>";
+server = "<MYSQL SERVER>";
+db_name = "<MYSQL DATABASE NAME>";
+db_table = "<MYSQL DB TABLE>";
+
+

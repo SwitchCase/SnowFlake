@@ -20,7 +20,7 @@
 FILE *flog;
 char toExec[5][1000];
 MYSQL *conn;
-char* ATTR[8][256];
+char ATTR[8][256];
 char *SRVR, *USR_NAME, *PASSWD, *DB_NAME;
 char *DB_TB_NAME;
 char *JUDGE;
@@ -344,7 +344,7 @@ int run() {
 int loadFromConfig(const char *config_file) {
 	config_t config;
 	config_init(&config);
-	const char* attr[] ={"server", "user", "password", "db_name", "db_table", "judge",NULL};
+	const char* attr[] ={"server", "username", "password", "db_name", "db_table", "judge",NULL};
 	int curr=0;
 	if ( config_read_file(&config, config_file) == CONFIG_TRUE ) {
 		while( attr[curr] != NULL ) {
