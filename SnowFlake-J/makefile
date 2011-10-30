@@ -19,7 +19,7 @@ LIBRARY 	= -lmysqlclient  -static libs/libconfig/libconfig.a -static libs/argtab
 LDFLAGS 	= -lz -lpthread -lm -static -static-libgcc -Wall -mglibc
 LDPATH  	= -Llibs/argtable -Llibs/libconfig
 
-all: $(SRC) snowFlake snowFlake-debug
+all: $(SRC) snowFlake snowFlake-debug judge
 snowFlake: $(EXECPATH)/snowFlake.o $(ARGLIB)
 	gcc -o snowFlake $(EXECPATH)/snowFlake.o $(LIBRARY) $(LDFLAGS)  $(LDPATH)
 
@@ -48,3 +48,5 @@ libconfig: $(CONFIG)/libconfig.a
 	cd ../..
 	echo "Coming back"
 
+judge: $(SRCPATH)/judge.cpp
+	g++  $(SRCPATH)/judge.cpp -o $(EXECPATH)/judge $(LIBRARY) $(LDFLAGS) $(LDPATH) -I $(INCLUDE) 

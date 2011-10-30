@@ -24,7 +24,7 @@ if [ -d $JAIL ]; then
 	do
 		echo "Created $JAIL/$x\n"
 		mkdir -p $JAIL/$x
-		chmod 0544 $JAIL/$x
+		chmod 0755 $JAIL/$x
 	done
 fi
 mkdir $JAIL/home/$USR
@@ -50,6 +50,6 @@ do
 			mkdir -p $JAIL/$DIR 
 		fi	
 		cp $x $JAIL/$x
-		chmod 0555 $JAIL/$x
+		chmod 0511 $JAIL/$x
 	done
 done
