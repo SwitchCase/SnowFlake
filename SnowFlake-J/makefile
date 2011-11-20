@@ -49,4 +49,6 @@ libconfig: $(CONFIG)/libconfig.a
 	echo "Coming back"
 
 judge: $(SRCPATH)/judge.cpp
-	g++  $(SRCPATH)/judge.cpp -o $(EXECPATH)/judge $(LIBRARY) $(LDFLAGS) $(LDPATH) -I $(INCLUDE) 
+	g++  $(SRCPATH)/judge.cpp -o $(EXECPATH)/judge $(LIBRARY) $(LDFLAGS) $(LDPATH) -I $(INCLUDE)
+judge-debug: $(SRCPATH)/judge.cpp
+	g++  $(SRCPATH)/judge.cpp -o $(EXECPATH)/judge-debug $(LIBRARY) $(LDFLAGS) $(LDPATH) -I $(INCLUDE) -DDEBUG

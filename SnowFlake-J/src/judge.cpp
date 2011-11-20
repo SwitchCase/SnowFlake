@@ -41,12 +41,12 @@ void time_out(int i)
 	exit(TIME_EXCEEDED);
 }
 
-string getfile(string s)
+string getFileName(string s)
 {
 	unsigned int i = s.find_last_of('/');
 	if(i != string::npos)
-		return s.substr(0, i);
-	return "";
+		return s.substr(i+1);
+	return s;
 }
 
 string getext(string s)
@@ -57,17 +57,58 @@ string getext(string s)
 	return "";
 }
 
+int atoi(char* inStr) 
+{
+	int val = 0;
+	while( *inStr<= '9' && *inStr >= '0') {
+		val *= 10;
+		val += (*inStr) - '0';
+		inStr++;
+	}
+	return val;
+}
+
+char *itoa( int a ) {
+	int sign = 1;
+	int digits = 0;
+	if ( a < 0 ) {
+		sign = -1;
+		a*=sign;
+		digits++;
+	}
+	if ( a == 0 ) {
+		return "0";
+	}
+	int tmp = a;
+	while( tmp > 0 ) {
+		digits++,tmp /= 10;
+	}
+	char *ret = (char*) malloc(sizeof(char) * (digits + 1));
+	int currP = digits - 1;
+	if ( sign == -1 ) {
+		ret[0] = '-';
+	}
+	ret[digits] = '\0';
+	while( a > 0) {
+		ret[currP--] = '0' + (a % 10);
+		a /= 10;
+	}
+	return ret;
+	
+}
+
 bool match(const char *pattern, const char *filename);
 bool checkForSystemCalls(const char *filename);
 
 string file;
 string inFile, outFile;
-int timeLimit;
-int memoryLimit;
-int testCount;
+unsigned int timeLimit;
+unsigned int memoryLimit;
+unsigned int testCount;
 string problemDir;
 string problemCode;
 string jailDir;
+string userName;
 
 int nonBinary(const char *inString) 
 {
@@ -100,6 +141,7 @@ int readCommandLineArgs(int argc, char* argv[])
 	struct arg_file *source 	= arg_file1(NULL, NULL, "<source code>", "*Source code file");
 	struct arg_file *jail   	= arg_file1("j", "jail", "<file>", "*Jail to restrict executable in.");
 	struct arg_file *problem    = arg_file0("p", "problem", "<file>", "Problem directory containing all problem set, relative to jail directory. DEFAULT - <jail>/problem");
+	struct arg_file *user 		= arg_file1("u", "user", "<user name>", "User name who submitted this source file.");
 	struct arg_str *probset  	= arg_str1("s", "problemset", "<Problem Code>", "*Code of problem to test. Must be inside the problem directory");
 	struct arg_int *timelimit   = arg_int1("t", "config", "<n>", "*Time limit of problem set");
 	struct arg_int *memory      = arg_int0("m", "memory", "<n>", "Memory limits to set in KB");
@@ -108,13 +150,22 @@ int readCommandLineArgs(int argc, char* argv[])
 	struct arg_str *outF	 	= arg_str0("o", "outfile", "<file prefix>", "Prefix used for each of the output files. eg for - out0,out1,out2... prefix is \"out\"");
 	struct arg_lit *help 		= arg_lit0("h", "help", "This help menu");
 	struct arg_end *end    		= arg_end(10);
-	void *argtable[]        	= { source, jail, problem, probset, timelimit, memory, countSet, inF, outF, help, end };
+	void *argtable[]        	= { source, jail, problem, user, probset, timelimit, memory, countSet, inF, outF, help, end };
 
 	int nerrors = arg_parse(argc, argv, argtable);
 	string tmp;
 	if ( !nerrors) {
 		if ( help->count) {
 			printGlossary(argtable, "help");
+		}
+		if ( user->count) {
+			if ( strlen(user->filename[0]) < 256 && nonBinary(user->filename[0]) ) {
+				userName = string(user->filename[0]);
+			}		
+			else {
+				printf("Username larger than 256 characters\n");
+				printGlossary(argtable, "username");
+			}
 		}
 		if ( source->count) {
 			if ( strlen(source->filename[0]) < 256 && nonBinary(source->filename[0]) ) {
@@ -145,7 +196,7 @@ int readCommandLineArgs(int argc, char* argv[])
 		if ( problem->count) {
 			tmp = jailDir + "/"+ string(problem->filename[0]);
 			if ( directoryExists(tmp) && nonBinary(tmp.c_str())) {
-				problemDir = tmp;
+				problemDir = string(problem->filename[0]);
 			}
 		}
 		else {
@@ -153,7 +204,7 @@ int readCommandLineArgs(int argc, char* argv[])
 		}
 
 		if ( probset->count ) {
-			tmp = problemDir + "/" + string(probset->sval[0]);
+			tmp = jailDir + "/" + problemDir + "/" + string(probset->sval[0]);
 			if ( directoryExists(tmp) && nonBinary(tmp.c_str())) {
 				problemCode = string(probset->sval[0]);
 			}
@@ -205,14 +256,13 @@ int readCommandLineArgs(int argc, char* argv[])
 		printGlossary(argtable, "help");
 		exit(1);
 	}
-	    arg_freetable(argtable, sizeof(argtable)/sizeof(argtable[0]));
+	arg_freetable(argtable, sizeof(argtable)/sizeof(argtable[0]));
 	return 1;
 }
 
 int main(int argc,char *argv[])
 {
 	readCommandLineArgs(argc, argv);
-
 	string ext = getext(file.c_str());
 
 	if ( ext == "" || file == "" || (ext != "cpp" && ext != "c" && ext != "CPP" && ext != "C"))
@@ -224,18 +274,21 @@ int main(int argc,char *argv[])
 		return ILLEGAL_FILE;
 	}
 
-	if(checkForSystemCalls(argv[1]))
-		return COMPILE_ERROR;
+	//if(checkForSystemCalls(argv[1]))
+	//	return COMPILE_ERROR;
 
 	string flag=" ";
+	string userDir = "/var/tmp/usrs/" + userName;
 	if(ext.size() == 1)
 		flag = " -xc ";
 
-	string cmd = "g++ -lm "+ flag + file +" -o" +  + "/a.out 2>"+ file + "/opc";
+	string fileName = getFileName(file);
+	
+	string cmd = "g++ -lm " + flag + file + " -o " + jailDir + "/" + userDir + "/a.out &> " + jailDir + "/" + userDir + "/err." + fileName;
 	//string sed="sed -i 's#"+ "code" + "##g' " + file+"/opc";
 	//system(sed.c_str());	
 	#ifdef DEBUG
-		cerr<<cmd<<" "<<file<<" "<<ext<<endl;
+		cerr<<"[INFO] "<<cmd<<" ;;"<<userDir<<"/"<<file<<" ;ext = "<<ext<<endl;
 	#endif
 
 	int i = system(cmd.c_str());
@@ -247,85 +300,90 @@ int main(int argc,char *argv[])
 		return COMPILE_ERROR;
 	}
 
-	pid=fork();
-	if(pid)
-	{       
-		int status;
+	for ( unsigned int i = 0; i < testCount; i++ ) {
+		pid = fork();
+		if(pid)
+		{       
+			int status;
 		
-		signal(SIGALRM,time_out);
-		alarm(timeLimit);
-		waitpid(pid,&status,0);
-		alarm(0);
+			signal(SIGALRM,time_out);
+			alarm(timeLimit);
+			#ifdef DEBUG
+				cerr<<"Timelimit Set to ["<<timeLimit<<"]\n";
+				cerr<<"Waiting on PID ["<<pid<<"]\n";
+			#endif
+			waitpid(pid,&status,0);
+			alarm(0);
 		
-		if(WIFSIGNALED(status))
-			return RUN_TIME_ERROR;
-			
-		string file1 = file + "/op";
-		string file2 = "./problems/"+string(argv[2])+"/out"; //change this output file name and the actual file for security issues
-		/*ifstream f1(file.c_str());
-		
-		file = "./problems/"+string(argv[2])+"/out";
-		ifstream f2(file.c_str());
+			if(WIFSIGNALED(status) || WEXITSTATUS(status) == 10)
+				return RUN_TIME_ERROR;
+				
+			string file1 = jailDir + "/" + userDir + "/op";
+			string file2 = jailDir + "/" + problemDir + "/" + problemCode + "/" + outFile + string(itoa(i)); //change this output file name and the actual file for security issues
 
-		string s="",b1,b2;
-		while(1)
-		{
-			f1>>s;
-			if(!s[0])
-				break;
-			b1 = b1+" "+s;
-			s[0]=0;
-		}
-		s="";
-		while(1)
-		{
-			f2>>s;
-			if(!s[0])
-				break;
-			b2 = b2+" "+s;
-			s[0]=0;
-		}
-*/
+			#ifdef DEBUG
+				cerr<<"Checking ["<<file1<<"] against ["<<file2<<"]\n";
+			#endif
 
-		string diff="diff " + file1 + " " + file2;
-		int FLAG=system(diff.c_str());
-		if(WEXITSTATUS(FLAG)==0)
-			exit_status=RIGHT;
-		else
-			{
-			 string diff1="diff -bBiw " + file1 + " " + file2;
-			 int FLAG2=system(diff1.c_str());
-			 if(WEXITSTATUS(FLAG2)==0)
-			 	exit_status=PRESENTATION_ERROR;
-			 else
-			  	exit_status=WRONG;
+			string diff = "diff " + file1 + " " + file2;
+			int FLAG = system(diff.c_str());
+			if(WEXITSTATUS(FLAG) == 0) {
+				exit_status = RIGHT;
 			}
-	}
-	
-	else
-	{
-		int inp = dup(0);
-		int op = dup(1);
+			else {
+				 string diff1 = "diff -bBiw " + file1 + " " + file2;
+				 int FLAG2 = system(diff1.c_str());
+				 if(WEXITSTATUS(FLAG2) == 0) {
+			 		exit_status = PRESENTATION_ERROR;
+				 }
+				 else {
+				  	exit_status = WRONG;
+				 }
+			}
+		}
+		else
+		{
+			if ( chroot(jailDir.c_str()) ) {
+				cerr<<"Cannot chroot to "<<jailDir<<endl;
+				return 1;
+			}
+			chdir("/");
 
+			int inp = dup(0);
+			int op = dup(1);
 
-		string file;
-		file = file+"/op";
-		int ofid = open(file.c_str(),O_RDWR|O_CREAT|O_TRUNC,0666);
-		dup2(ofid,1);
+			string workingOutFile = userDir + "/op";
+			#ifdef DEBUG
+				cerr<<"Output file set to ["<<workingOutFile<<"]\n";
+			#endif
+			int ofid = open(workingOutFile.c_str(),O_RDWR|O_CREAT|O_TRUNC, 0777);
+			if ( dup2(ofid, 1) == -1) {
+				perror("Error opening output file\n");;
+				//exit(10);
+			}
 		
 
-		file = "FIX ME";    //change this input file name and the actual file for security issues
-		int ifid = open(file.c_str(), O_RDONLY,0);
-		dup2(ifid, 0);
+			string workingInFile = problemDir + "/" + problemCode + "/" + inFile + string(itoa(i));    //change this input file name and the actual file for security issues
+			#ifdef DEBUG
+				cerr<<"Input file set to ["<<workingInFile<<"]\n";
+			#endif
+			int ifid = open(workingInFile.c_str(), O_RDONLY,444);
+			if ( !directoryExists(workingInFile) ) {
+				cerr<<"Cannot find file "<<workingInFile<<endl;
+			}
+			if ( dup2(ifid, 0) == -1 ) {
+				perror("Error opening input file\n");
+				//exit(10);
+			}
 		
-		file = file + "/a.out";
-		execv(file.c_str(), NULL);
-
-		dup2(inp, 0);
-		dup2(op, 1);
-		return 0;
+			string binaryToExec = userDir + "/a.out";
+			#ifdef DEBUG
+				cerr<<"Binary file to exec file set to ["<<binaryToExec<<"]\n";
+			#endif
+			execv(binaryToExec.c_str(), NULL);
+			return 0;
+		}
 	}
-
 	#ifdef DEBUG
 		cerr<<err[exit_status]<<endl;
 	#endif
@@ -409,6 +467,5 @@ bool match(const char *pattern, const char *filename)
 		return true;
 
 	in.close();
-
 	return false;
 }
